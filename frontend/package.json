@@ -2,7 +2,7 @@
   "name": "@rps/monorepo",
   "private": true,
   "version": "0.1.0",
-  "description": "RPS onchain game monorepo (web + shared packages)",
+  "description": "RPS Arena game monorepo (web + shared packages)",
   "workspaces": [
     "apps/*",
     "packages/*"

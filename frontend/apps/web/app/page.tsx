@@ -7,8 +7,17 @@ export default function HomePage() {
   const { connected } = useWallet();
 
   return (
-    <main style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
-      <h1>RPS Onchain</h1>
+    <main style={{
+      padding: 24,
+      fontFamily: 'system-ui, sans-serif',
+      minHeight: '100dvh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 16
+    }}>
+      <h1 style={{ margin: 0 }}>RPS Arena</h1>
       <div style={{ display: 'flex', gap: 12 }}>
         <WalletMultiButton />
         <button

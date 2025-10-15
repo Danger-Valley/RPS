@@ -1,4 +1,4 @@
-# RPS Onchain – Monorepo
+# RPS Arena – Monorepo
 
 Monorepo for an onchain Rock–Paper–Scissors game on Solana.
 
