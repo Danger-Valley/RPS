@@ -18,10 +18,16 @@ npm install
 2) Run the web app (Next.js)
 
 ```bash
-npm run dev
+npm run dev          # User server on 3000
+# or run the agent's server on another port to avoid clashes
+npm run dev:agent    # Agent server on 3100
 ```
 
 Open `http://localhost:3000`.
+
+### Port conflicts
+
+If Cursor Agent is running its own dev server, use `npm run dev:agent` to run it on `3100`, while your own `npm run dev` uses `3000`.
 
 ### Troubleshooting
 
