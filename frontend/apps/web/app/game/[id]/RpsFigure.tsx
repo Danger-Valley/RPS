@@ -1,25 +1,27 @@
 "use client";
-import { CSSProperties, useEffect, useMemo } from 'react';
+import { CSSProperties, useEffect, useState } from 'react';
 import { useRive } from '@rive-app/react-canvas';
 
 export type Weapon = 0 | 1 | 2 | 3; // 0=none,1=stone,2=paper,3=scissors
 export type TriggerName =
+  | 'Weapon'
   | 'Jump Forward'
   | 'Jump Left'
   | 'Jump Right'
   | 'Attack Prepare'
   | 'Attack'
+  | 'Trap'
   | 'Death';
 
 export interface RpsFigureProps {
   src?: string;
   weapon?: Weapon; // when undefined, component can randomize
-  trigger?: TriggerName | null;
+  trigger?: TriggerName;
   style?: CSSProperties;
   randomizeWeapon?: boolean;
 }
 
- const MACHINE_NAMES = ['Ninja State Machine'] as const;
+ const MACHINE_NAMES = ['Ninja State Machine'] as const; //TODO: rename to "State Machine" once I have new figure from Valentine
 
 export function setWeapon(rive: any, weapon?: Weapon) {
   if (!rive) return;
@@ -44,13 +46,16 @@ export function setWeapon(rive: any, weapon?: Weapon) {
 export default function RpsFigure({
   src = '/figures/fig1.riv',
   weapon,
-  trigger = null,
+  trigger = undefined,
   style
 }: RpsFigureProps) {
   const { rive, RiveComponent } = useRive({
     src,
     autoplay: true,
     stateMachines: MACHINE_NAMES as unknown as string[],
+    onLoadError: (error) => {
+      console.warn('[Rive] Load error:', error);
+    }
   });
 
   // Set weapon number input if present
