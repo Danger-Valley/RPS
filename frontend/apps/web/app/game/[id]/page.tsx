@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState, useEffect } from 'react';
+import { useRiveFile } from '@rive-app/react-canvas';
 import { useParams } from 'next/navigation';
 import RpsFigure, { Weapon } from './RpsFigure';
 
@@ -18,6 +19,8 @@ interface Figure {
 }
 
 export default function GamePage() {
+  // Load shared Rive file once and share across all figures
+  const { riveFile, status: riveStatus } = useRiveFile({ src: '/figures/fig1.riv' });
   const { id } = useParams<{ id: string }>();
   const rows = 6;
   const cols = 7;
@@ -329,7 +332,7 @@ export default function GamePage() {
           })}
           
           {/* All figures positioned absolutely */}
-          {figures.filter(f => f.isAlive).map((figure) => {
+          {riveStatus === 'success' && figures.filter(f => f.isAlive).map((figure) => {
             const isAnimating = animatingFigure === figure.id;
             
             // Use animation position if moving, otherwise use normal position
@@ -349,6 +352,7 @@ export default function GamePage() {
                 }}
               >
                 <RpsFigure
+                  riveFile={riveFile as any}
                   weapon={figure.isMyFigure ? figure.weapon : 0}
                   trigger={isAnimating ? jumpDirection : undefined}
                   isMyFigure={figure.isMyFigure}

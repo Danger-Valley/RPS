@@ -22,6 +22,7 @@ export interface RpsFigureProps {
   trigger?: TriggerName;
   style?: CSSProperties;
   isMyFigure?: boolean; // true for my figures, false for opponent figures
+  riveFile?: any; // shared rive file instance
 }
 
  const MACHINE_NAMES = ['State Machine Back', 'State Machine Front'] as const;
@@ -51,19 +52,21 @@ export default function RpsFigure({
   weapon,
   trigger = undefined,
   style,
-  isMyFigure = true
+  isMyFigure = true,
+  riveFile
 }: RpsFigureProps) {
   // Choose state machine based on figure ownership
   const stateMachine = isMyFigure ? 'State Machine Back' : 'State Machine Front';
   
   const { rive, RiveComponent } = useRive({
-    src,
+    src: riveFile ? undefined : src,
+    riveFile,
     autoplay: true,
     stateMachines: [stateMachine],
     onLoadError: (error) => {
       console.warn('[Rive] Load error:', error);
     }
-  });
+  }, { useOffscreenRenderer: false });
 
   // Set weapon number input if present
   useEffect(() => {
