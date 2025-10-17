@@ -11,7 +11,10 @@ export type TriggerName =
   | 'Attack Prepare'
   | 'Attack'
   | 'Trap'
-  | 'Death';
+  | 'Death'
+  | 'Paper Death'
+  | 'Stone Death'
+  | 'Scissors Death';
 
 export interface RpsFigureProps {
   src?: string;
@@ -86,13 +89,24 @@ export default function RpsFigure({
   // Fire triggers by name when provided
   useEffect(() => {
     if (!rive || !trigger) return;
+    console.log('[Rive] Triggering:', trigger);
     try {
       for (const m of MACHINE_NAMES as unknown as string[]) {
         const inputs = (rive.stateMachineInputs?.(m) ?? []) as any[];
+        console.log('[Rive] Available inputs:', inputs.map((i: any) => i.name));
         const t = inputs.find((i: any) => i?.name === trigger && typeof i?.fire === 'function');
-        if (t) t.fire();
+        if (t) {
+          console.log('[Rive] Firing trigger:', trigger);
+          console.log('[Rive] Before firing - current state:', rive.stateMachineInputs?.(m));
+          t.fire();
+          console.log('[Rive] After firing - current state:', rive.stateMachineInputs?.(m));
+        } else {
+          console.log('[Rive] Trigger not found:', trigger);
+        }
       }
-    } catch {}
+    } catch (e) {
+      console.error('[Rive] Trigger error:', e);
+    }
   }, [rive, trigger]);
 
   return <RiveComponent style={style} />;

@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import RpsFigure, { Weapon } from './RpsFigure';
 
@@ -18,6 +18,24 @@ export default function GamePage() {
       return { row, col, showFigure, weapon, key: i };
     });
   }, [cells, cols]);
+
+  // Animation trigger - track which figure should animate
+  const [animatingFigure, setAnimatingFigure] = useState<number | null>(null);
+
+  const handleCellClick = (cellKey: number) => {
+    console.log('Cell clicked:', cellKey);
+    // Clear any existing animation first
+    setAnimatingFigure(null);
+    // Set the new animation after a small delay to ensure state update
+    setTimeout(() => {
+      setAnimatingFigure(cellKey);
+      // Reset trigger after animation completes
+      setTimeout(() => {
+        console.log('Resetting animation trigger for cell:', cellKey);
+        setAnimatingFigure(null);
+      }, 2000);
+    }, 10);
+  };
 
 
   return (
@@ -51,13 +69,26 @@ export default function GamePage() {
                 border: '1px solid #2b3a44',
                 background: key % 2 === 0 ? '#11171c' : '#0e1419',
                 position: 'relative',
-                overflow: 'visible'
+                overflow: 'visible',
+                cursor: 'pointer'
               }}
+              onClick={() => handleCellClick(key)}
             >
               {showFigure && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', transform: 'translateY(-1%)' }}>
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    inset: 0, 
+                    display: 'flex', 
+                    alignItems: 'flex-end', 
+                    justifyContent: 'center', 
+                    transform: 'translateY(-1%)',
+                    pointerEvents: 'none' // Make figure unclickable
+                  }}
+                >
                   <RpsFigure
                     weapon={weapon}
+                    trigger={animatingFigure === key ? 'Jump Forward' : undefined}
                     style={{ width: '90%', height: '90%', transform: 'scale(1.9)', transformOrigin: 'bottom center' }}
                   />
                 </div>
