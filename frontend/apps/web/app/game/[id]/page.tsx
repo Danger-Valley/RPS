@@ -83,8 +83,13 @@ export default function GamePage() {
   const actualCellHeight = actualBoardHeight / rows;
   
   // Calculate responsive figure size based on actual cell dimensions
-  const figureSize = Math.min(actualCellWidth, actualCellHeight) * 0.75; // 75% of the smaller cell dimension
-  const figureScale = figureSize / 90; // Scale factor relative to base size of 90px
+//   console.log('actualCellWidth:', actualCellWidth, 'actualCellHeight:', actualCellHeight);
+  const cellSize = Math.min(actualCellWidth, actualCellHeight);
+  
+  // Use a hybrid approach: minimum size for small fields, scaled size for large fields
+  const figureSize = cellSize * 1.5;
+  const figureScale = 1.0 ;
+//   console.log('figureSize:', figureSize, 'figureScale:', figureScale, 'cellSize:', cellSize);
 
   // Animation trigger - track which figure should animate
   const [animatingFigure, setAnimatingFigure] = useState<string | null>(null);
@@ -180,9 +185,9 @@ export default function GamePage() {
     
     // Calculate positions
     const oldX = (figure.col * actualCellWidth) + (actualCellWidth / 2);
-    const oldY = (figure.row * actualCellHeight) + (actualCellHeight / 2);
+    const oldY = (figure.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
     const newX = (newCol * actualCellWidth) + (actualCellWidth / 2);
-    const newY = (newRow * actualCellHeight) + (actualCellHeight / 2);
+    const newY = (newRow * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
     
     // Mark figure as moving and set initial animation position
     setFigures(prevFigures => 
@@ -329,7 +334,7 @@ export default function GamePage() {
             
             // Use animation position if moving, otherwise use normal position
             const x = figure.isMoving && figure.animX !== undefined ? figure.animX : (figure.col * actualCellWidth) + (actualCellWidth / 2);
-            const y = figure.isMoving && figure.animY !== undefined ? figure.animY : (figure.row * actualCellHeight) + (actualCellHeight / 2);
+            const y = figure.isMoving && figure.animY !== undefined ? figure.animY : (figure.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
             
             return (
               <div
@@ -350,7 +355,7 @@ export default function GamePage() {
                   style={{ 
                     width: `${figureSize}px`, 
                     height: `${figureSize}px`, 
-                    transform: `scale(${2.0 * figureScale})`, 
+                    transform: `scale(${figureScale})`, 
                     transformOrigin: 'center center' 
                   }}
                 />
