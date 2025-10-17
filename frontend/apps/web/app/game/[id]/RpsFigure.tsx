@@ -21,10 +21,10 @@ export interface RpsFigureProps {
   weapon?: Weapon; // when undefined, component can randomize
   trigger?: TriggerName;
   style?: CSSProperties;
-  randomizeWeapon?: boolean;
+  isMyFigure?: boolean; // true for my figures, false for opponent figures
 }
 
- const MACHINE_NAMES = ['Ninja State Machine'] as const; //TODO: rename to "State Machine" once I have new figure from Valentine
+ const MACHINE_NAMES = ['State Machine Back', 'State Machine Front'] as const;
 
 export function setWeapon(rive: any, weapon?: Weapon) {
   if (!rive) return;
@@ -50,12 +50,16 @@ export default function RpsFigure({
   src = '/figures/fig1.riv',
   weapon,
   trigger = undefined,
-  style
+  style,
+  isMyFigure = true
 }: RpsFigureProps) {
+  // Choose state machine based on figure ownership
+  const stateMachine = isMyFigure ? 'State Machine Back' : 'State Machine Front';
+  
   const { rive, RiveComponent } = useRive({
     src,
     autoplay: true,
-    stateMachines: MACHINE_NAMES as unknown as string[],
+    stateMachines: [stateMachine],
     onLoadError: (error) => {
       console.warn('[Rive] Load error:', error);
     }
@@ -89,25 +93,23 @@ export default function RpsFigure({
   // Fire triggers by name when provided
   useEffect(() => {
     if (!rive || !trigger) return;
-    console.log('[Rive] Triggering:', trigger);
+    console.log('[Rive] Triggering:', trigger, 'on state machine:', stateMachine);
     try {
-      for (const m of MACHINE_NAMES as unknown as string[]) {
-        const inputs = (rive.stateMachineInputs?.(m) ?? []) as any[];
-        console.log('[Rive] Available inputs:', inputs.map((i: any) => i.name));
-        const t = inputs.find((i: any) => i?.name === trigger && typeof i?.fire === 'function');
-        if (t) {
-          console.log('[Rive] Firing trigger:', trigger);
-          console.log('[Rive] Before firing - current state:', rive.stateMachineInputs?.(m));
-          t.fire();
-          console.log('[Rive] After firing - current state:', rive.stateMachineInputs?.(m));
-        } else {
-          console.log('[Rive] Trigger not found:', trigger);
-        }
+      const inputs = (rive.stateMachineInputs?.(stateMachine) ?? []) as any[];
+      console.log('[Rive] Available inputs:', inputs.map((i: any) => i.name));
+      const t = inputs.find((i: any) => i?.name === trigger && typeof i?.fire === 'function');
+      if (t) {
+        console.log('[Rive] Firing trigger:', trigger);
+        console.log('[Rive] Before firing - current state:', rive.stateMachineInputs?.(stateMachine));
+        t.fire();
+        console.log('[Rive] After firing - current state:', rive.stateMachineInputs?.(stateMachine));
+      } else {
+        console.log('[Rive] Trigger not found:', trigger);
       }
     } catch (e) {
       console.error('[Rive] Trigger error:', e);
     }
-  }, [rive, trigger]);
+  }, [rive, trigger, stateMachine]);
 
   return <RiveComponent style={style} />;
 }

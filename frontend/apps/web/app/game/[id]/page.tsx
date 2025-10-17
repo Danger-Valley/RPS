@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import RpsFigure, { Weapon } from './RpsFigure';
 
@@ -23,6 +23,22 @@ export default function GamePage() {
   const cols = 7;
   const cells = useMemo(() => Array.from({ length: rows * cols }), []);
 
+  // Track window size for responsive calculations
+  const [windowWidth, setWindowWidth] = useState(0);
+  const [boardRef, setBoardRef] = useState<HTMLDivElement | null>(null);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    // Set initial width
+    handleResize();
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Initialize figures array
   const [figures, setFigures] = useState<Figure[]>(() => {
     const initialFigures: Figure[] = [];
@@ -35,7 +51,7 @@ export default function GamePage() {
           id: `opponent-${figureId++}`,
           row,
           col,
-          weapon: ((row + col) % 4) as Weapon,
+          weapon: 0,
           isMyFigure: false,
           isAlive: true
         });
@@ -49,7 +65,7 @@ export default function GamePage() {
           id: `my-${figureId++}`,
           row,
           col,
-          weapon: ((row + col) % 4) as Weapon,
+          weapon: (1 +(row + col) % 3) as Weapon,
           isMyFigure: true,
           isAlive: true
         });
@@ -59,11 +75,16 @@ export default function GamePage() {
     return initialFigures;
   });
 
-  // Calculate cell dimensions for positioning
-  const boardWidth = 840; // Max width from CSS
-  const boardHeight = (boardWidth * rows) / cols; // Calculate height based on aspect ratio
-  const cellWidth = boardWidth / cols;
-  const cellHeight = boardHeight / rows;
+  // Calculate responsive cell dimensions for positioning
+  // Use actual board dimensions if available, otherwise fallback to calculated values
+  const actualBoardWidth = boardRef?.clientWidth || (windowWidth > 0 ? Math.min(840, windowWidth * 0.9) : 840);
+  const actualBoardHeight = boardRef?.clientHeight || (actualBoardWidth * rows) / cols;
+  const actualCellWidth = actualBoardWidth / cols;
+  const actualCellHeight = actualBoardHeight / rows;
+  
+  // Calculate responsive figure size based on actual cell dimensions
+  const figureSize = Math.min(actualCellWidth, actualCellHeight) * 0.75; // 75% of the smaller cell dimension
+  const figureScale = figureSize / 90; // Scale factor relative to base size of 90px
 
   // Animation trigger - track which figure should animate
   const [animatingFigure, setAnimatingFigure] = useState<string | null>(null);
@@ -158,10 +179,10 @@ export default function GamePage() {
     setJumpDirection(jumpDirection);
     
     // Calculate positions
-    const oldX = (figure.col * cellWidth) + (cellWidth / 2);
-    const oldY = (figure.row * cellHeight) + (cellHeight / 2);
-    const newX = (newCol * cellWidth) + (cellWidth / 2);
-    const newY = (newRow * cellHeight) + (cellHeight / 2);
+    const oldX = (figure.col * actualCellWidth) + (actualCellWidth / 2);
+    const oldY = (figure.row * actualCellHeight) + (actualCellHeight / 2);
+    const newX = (newCol * actualCellWidth) + (actualCellWidth / 2);
+    const newY = (newRow * actualCellHeight) + (actualCellHeight / 2);
     
     // Mark figure as moving and set initial animation position
     setFigures(prevFigures => 
@@ -244,9 +265,10 @@ export default function GamePage() {
       <section>
         <h2 style={{ color: '#66fcf1', marginTop: 0 }}>Game #{id}</h2>
         <div
+          ref={setBoardRef}
           style={{
             width: '100%',
-            maxWidth: 840,
+            maxWidth: 'min(840px, 90vw)',
             aspectRatio: `${cols} / ${rows}`,
             background: 'transparent',
             border: '1px solid #2b3a44',
@@ -276,7 +298,7 @@ export default function GamePage() {
                   borderColor: isSelected ? '#66fcf1' : '#2b3a44',
                   borderWidth: isSelected ? '2px' : '1px'
                 }}
-                onClick={() => handleCellClick(i, figure)}
+                onClick={() => handleCellClick(i, figure || null)}
               >
                 {/* Show arrow for available moves */}
                 {availableMove && (
@@ -306,8 +328,8 @@ export default function GamePage() {
             const isAnimating = animatingFigure === figure.id;
             
             // Use animation position if moving, otherwise use normal position
-            const x = figure.isMoving && figure.animX !== undefined ? figure.animX : (figure.col * cellWidth) + (cellWidth / 2);
-            const y = figure.isMoving && figure.animY !== undefined ? figure.animY : (figure.row * cellHeight) + (cellHeight / 2);
+            const x = figure.isMoving && figure.animX !== undefined ? figure.animX : (figure.col * actualCellWidth) + (actualCellWidth / 2);
+            const y = figure.isMoving && figure.animY !== undefined ? figure.animY : (figure.row * actualCellHeight) + (actualCellHeight / 2);
             
             return (
               <div
@@ -322,13 +344,14 @@ export default function GamePage() {
                 }}
               >
                 <RpsFigure
-                  weapon={figure.weapon}
+                  weapon={figure.isMyFigure ? figure.weapon : 0}
                   trigger={isAnimating ? jumpDirection : undefined}
+                  isMyFigure={figure.isMyFigure}
                   style={{ 
-                    width: '90px', 
-                    height: '90px', 
-                    transform: 'scale(1.9)', 
-                    transformOrigin: 'bottom center' 
+                    width: `${figureSize}px`, 
+                    height: `${figureSize}px`, 
+                    transform: `scale(${2.0 * figureScale})`, 
+                    transformOrigin: 'center center' 
                   }}
                 />
               </div>
