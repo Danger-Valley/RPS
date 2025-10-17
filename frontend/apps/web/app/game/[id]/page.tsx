@@ -88,7 +88,7 @@ export default function GamePage() {
   
   // Use a hybrid approach: minimum size for small fields, scaled size for large fields
   const figureSize = cellSize * 1.5;
-  const figureScale = 1.0 ;
+  const figureScale = 1.0;
 //   console.log('figureSize:', figureSize, 'figureScale:', figureScale, 'cellSize:', cellSize);
 
   // Animation trigger - track which figure should animate
