@@ -67,6 +67,7 @@ export default function GamePage() {
 
   // Animation trigger - track which figure should animate
   const [animatingFigure, setAnimatingFigure] = useState<string | null>(null);
+  const [jumpDirection, setJumpDirection] = useState<'Jump Forward' | 'Jump Left' | 'Jump Right'>('Jump Forward');
   
   // Movement system
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
@@ -140,8 +141,21 @@ export default function GamePage() {
   };
 
   const moveFigure = (figure: Figure, newRow: number, newCol: number) => {
+    // Determine jump direction based on movement
+    const rowDiff = newRow - figure.row;
+    const colDiff = newCol - figure.col;
+    
+    let jumpDirection: 'Jump Forward' | 'Jump Left' | 'Jump Right' = 'Jump Forward';
+    if (colDiff < 0) {
+      jumpDirection = 'Jump Left';  // Moving left
+    } else if (colDiff > 0) {
+      jumpDirection = 'Jump Right'; // Moving right
+    }
+    // For up/down movement (rowDiff !== 0), use 'Jump Forward'
+    
     // Start animation on the figure (using figure ID)
     setAnimatingFigure(figure.id);
+    setJumpDirection(jumpDirection);
     
     // Calculate positions
     const oldX = (figure.col * cellWidth) + (cellWidth / 2);
@@ -170,7 +184,8 @@ export default function GamePage() {
     // Start position animation after 200ms delay
     setTimeout(() => {
       const startTime = Date.now();
-      const duration = 500; // 500ms movement
+      // Different durations based on jump direction
+      const duration = (jumpDirection === 'Jump Left' || jumpDirection === 'Jump Right') ? 300 : 500;
       
       const animate = () => {
         const elapsed = Date.now() - startTime;
@@ -308,7 +323,7 @@ export default function GamePage() {
               >
                 <RpsFigure
                   weapon={figure.weapon}
-                  trigger={isAnimating ? 'Jump Forward' : undefined}
+                  trigger={isAnimating ? jumpDirection : undefined}
                   style={{ 
                     width: '90px', 
                     height: '90px', 
