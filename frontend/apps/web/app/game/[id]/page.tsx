@@ -104,6 +104,7 @@ export default function GamePage() {
   const [attackPositions, setAttackPositions] = useState<{[key: string]: {x: number, y: number}}>({});
   const [scaledFigures, setScaledFigures] = useState<string[]>([]);
   const [attackPhase, setAttackPhase] = useState<'prepare' | 'attack' | null>(null);
+  const [dyingFigures, setDyingFigures] = useState<string[]>([]);
   
   // Movement system
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
@@ -322,7 +323,7 @@ export default function GamePage() {
     
     // Don't scale during "Attack Prepare" phase, but keep movement animation
     
-    // Add opponent to flipped list (keep them flipped after animation)
+    // Instantly flip opponent (before attack prepare)
     if (!target.isMyFigure) {
       setFlippedOpponents(prev => [...prev.filter(id => id !== target.id), target.id]);
     }
@@ -330,19 +331,62 @@ export default function GamePage() {
     // Start with "Attack Prepare" phase
     setAttackPhase('prepare');
     
-    // After 1 second, switch to "Attack" phase and scale figures
+    // After 400ms, switch to "Attack" phase and scale figures
     setTimeout(() => {
       setAttackPhase('attack');
       setScaledFigures([attacker.id, target.id]);
-    }, 1000);
+      
+      // After 200ms more, start death animation for opponent
+      setTimeout(() => {
+        if (!target.isMyFigure) {
+          setDyingFigures([target.id]);
+        }
+      }, 200);
+    }, 400);
     
-    // Reset attack state after total animation duration
+    // Reset attack state and resolve combat after total animation duration
     setTimeout(() => {
       setAttackingFigures([]);
       setAttackPositions({});
       setScaledFigures([]);
       setAttackPhase(null);
-    }, 2000); // Total attack animation duration
+      setDyingFigures([]);
+      
+      // Resolve combat - for now, attacker always wins (you can add RPS logic later)
+      resolveCombat(attacker, target);
+    }, 1400); // Total attack animation duration
+  };
+
+  const resolveCombat = (attacker: Figure, target: Figure) => {
+    // For now, attacker always wins (you can add RPS logic later)
+    const attackerWins = true;
+    
+    if (attackerWins) {
+      // Attacker wins: attacker moves to target's cell, target disappears
+      setFigures(prevFigures => 
+        prevFigures.map(f => {
+          if (f.id === attacker.id) {
+            // Attacker moves to target's position
+            return { ...f, row: target.row, col: target.col };
+          } else if (f.id === target.id) {
+            // Target disappears (set as not alive)
+            return { ...f, isAlive: false };
+          }
+          return f;
+        })
+      );
+    } else {
+      // Target wins: target stays in place, attacker disappears
+      setFigures(prevFigures => 
+        prevFigures.map(f => {
+          if (f.id === attacker.id) {
+            // Attacker disappears
+            return { ...f, isAlive: false };
+          }
+          return f;
+        })
+      );
+    }
   };
 
 
@@ -434,7 +478,7 @@ export default function GamePage() {
                   top: y,
                   transform: 'translate(-50%, -50%)',
                   pointerEvents: 'none',
-                  zIndex: 5,
+                  zIndex: attackingFigures.includes(figure.id) ? 20 : 5,
                   transition: attackPos ? 'left 0.3s ease-in-out, top 0.3s ease-in-out' : 'none'
                 }}
               >
@@ -444,7 +488,9 @@ export default function GamePage() {
                     trigger={
                       isAnimating ? jumpDirection : 
                       attackingFigures.includes(figure.id) ? 
-                        (attackPhase === 'prepare' ? 'Atttack Prepare' : 'Attack') : 
+                        (attackPhase === 'prepare' ? 'Atttack Prepare' : 
+                         dyingFigures.includes(figure.id) ? 'Death' :
+                         figure.isMyFigure ? 'Attack' : undefined) : 
                       undefined
                     }
                     isMyFigure={figure.isMyFigure}
