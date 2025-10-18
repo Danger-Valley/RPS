@@ -105,6 +105,7 @@ export default function GamePage() {
   const [scaledFigures, setScaledFigures] = useState<string[]>([]);
   const [attackPhase, setAttackPhase] = useState<'prepare' | 'attack' | null>(null);
   const [dyingFigures, setDyingFigures] = useState<string[]>([]);
+  const [winningFigure, setWinningFigure] = useState<string | null>(null);
   
   // Movement system
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
@@ -286,6 +287,13 @@ export default function GamePage() {
   const attackFigure = (attacker: Figure, target: Figure) => {
     console.log('Attack initiated:', attacker.id, 'attacks', target.id);
     
+    // Determine winner early (before animations)
+    const attackerWins = Math.random() < 0.5;
+    const winner = attackerWins ? attacker : target;
+    const loser = attackerWins ? target : attacker;
+    
+    console.log('Combat outcome determined:', { winner: winner.id, loser: loser.id });
+    
     // Set opponent weapon to 1 (stone) before attack
     if (!target.isMyFigure) {
       setFigures(prevFigures => 
@@ -321,6 +329,9 @@ export default function GamePage() {
     // Set both figures as attacking
     setAttackingFigures([attacker.id, target.id]);
     
+    // Set winner and loser for animations
+    setWinningFigure(winner.id);
+    
     // Don't scale during "Attack Prepare" phase, but keep movement animation
     
     // Instantly flip opponent (before attack prepare)
@@ -336,11 +347,9 @@ export default function GamePage() {
       setAttackPhase('attack');
       setScaledFigures([attacker.id, target.id]);
       
-      // After 200ms more, start death animation for opponent
+      // After 200ms more, start death animation for loser
       setTimeout(() => {
-        if (!target.isMyFigure) {
-          setDyingFigures([target.id]);
-        }
+        setDyingFigures([loser.id]);
       }, 200);
     }, 400);
     
@@ -351,25 +360,32 @@ export default function GamePage() {
       setScaledFigures([]);
       setAttackPhase(null);
       setDyingFigures([]);
+      setWinningFigure(null);
       
-      // Resolve combat - for now, attacker always wins (you can add RPS logic later)
-      resolveCombat(attacker, target);
+      // If opponent wins, flip them back to normal orientation
+      if (winner.id === target.id && !target.isMyFigure) {
+        setFlippedOpponents(prev => prev.filter(id => id !== target.id));
+      }
+      
+      // Resolve combat with predetermined winner
+      resolveCombatWithWinner(attacker, target, winner);
     }, 1400); // Total attack animation duration
   };
 
-  const resolveCombat = (attacker: Figure, target: Figure) => {
-    // For now, attacker always wins (you can add RPS logic later)
-    const attackerWins = true;
+  const resolveCombatWithWinner = (attacker: Figure, target: Figure, winner: Figure) => {
+    console.log('Combat resolution with predetermined winner:', { attacker: attacker.id, target: target.id, winner: winner.id });
     
-    if (attackerWins) {
+    if (winner.id === attacker.id) {
       // Attacker wins: attacker moves to target's cell, target disappears
       setFigures(prevFigures => 
         prevFigures.map(f => {
           if (f.id === attacker.id) {
             // Attacker moves to target's position
+            console.log('Moving attacker to:', target.row, target.col);
             return { ...f, row: target.row, col: target.col };
           } else if (f.id === target.id) {
             // Target disappears (set as not alive)
+            console.log('Target dies:', f.id);
             return { ...f, isAlive: false };
           }
           return f;
@@ -381,6 +397,7 @@ export default function GamePage() {
         prevFigures.map(f => {
           if (f.id === attacker.id) {
             // Attacker disappears
+            console.log('Attacker dies:', f.id);
             return { ...f, isAlive: false };
           }
           return f;
@@ -490,7 +507,7 @@ export default function GamePage() {
                       attackingFigures.includes(figure.id) ? 
                         (attackPhase === 'prepare' ? 'Atttack Prepare' : 
                          dyingFigures.includes(figure.id) ? 'Death' :
-                         figure.isMyFigure ? 'Attack' : undefined) : 
+                         winningFigure === figure.id ? 'Attack' : 'Death') : 
                       undefined
                     }
                     isMyFigure={figure.isMyFigure}
