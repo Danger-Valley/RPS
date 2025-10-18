@@ -100,7 +100,6 @@ export default function GamePage() {
   
   // Attack system
   const [attackingFigures, setAttackingFigures] = useState<string[]>([]);
-  const [flippedOpponents, setFlippedOpponents] = useState<string[]>([]);
   const [attackPositions, setAttackPositions] = useState<{[key: string]: {x: number, y: number}}>({});
   const [scaledFigures, setScaledFigures] = useState<string[]>([]);
   const [attackPhase, setAttackPhase] = useState<'prepare' | 'attack' | null>(null);
@@ -334,11 +333,6 @@ export default function GamePage() {
     
     // Don't scale during "Attack Prepare" phase, but keep movement animation
     
-    // Instantly flip opponent (before attack prepare)
-    if (!target.isMyFigure) {
-      setFlippedOpponents(prev => [...prev.filter(id => id !== target.id), target.id]);
-    }
-    
     // Start with "Attack Prepare" phase
     setAttackPhase('prepare');
     
@@ -361,11 +355,6 @@ export default function GamePage() {
       setAttackPhase(null);
       setDyingFigures([]);
       setWinningFigure(null);
-      
-      // If opponent wins, flip them back to normal orientation
-      if (winner.id === target.id && !target.isMyFigure) {
-        setFlippedOpponents(prev => prev.filter(id => id !== target.id));
-      }
       
       // Resolve combat with predetermined winner
       resolveCombatWithWinner(attacker, target, winner);
@@ -514,7 +503,7 @@ export default function GamePage() {
                     style={{ 
                       width: `${figureSize}px`, 
                       height: `${figureSize}px`, 
-                      transform: `scale(${scaledFigures.includes(figure.id) ? figureScale * 2 : figureScale})${!figure.isMyFigure && flippedOpponents.includes(figure.id) ? ' scaleX(-1)' : ''}`, 
+                      transform: `scale(${scaledFigures.includes(figure.id) ? figureScale * 2 : figureScale})${!figure.isMyFigure ? ' scaleX(-1)' : ''}`, 
                       transformOrigin: 'center center',
                       transition: scaledFigures.includes(figure.id) ? 'transform 0.3s ease-in-out' : 'none'
                     }}
