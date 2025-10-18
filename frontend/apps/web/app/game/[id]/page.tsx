@@ -101,6 +101,9 @@ export default function GamePage() {
   // Attack system
   const [attackingFigures, setAttackingFigures] = useState<string[]>([]);
   const [flippedOpponents, setFlippedOpponents] = useState<string[]>([]);
+  const [attackPositions, setAttackPositions] = useState<{[key: string]: {x: number, y: number}}>({});
+  const [scaledFigures, setScaledFigures] = useState<string[]>([]);
+  const [attackPhase, setAttackPhase] = useState<'prepare' | 'attack' | null>(null);
   
   // Movement system
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
@@ -293,18 +296,53 @@ export default function GamePage() {
       );
     }
     
+    // Calculate attack positions (both figures move to center between them)
+    const attackerX = (attacker.col * actualCellWidth) + (actualCellWidth / 2);
+    const attackerY = (attacker.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
+    const targetX = (target.col * actualCellWidth) + (actualCellWidth / 2);
+    const targetY = (target.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
+    
+    // Calculate center position between attacker and target
+    const centerX = (attackerX + targetX) / 2;
+    const centerY = (attackerY + targetY) / 2;
+    
+    // Add some distance between figures (offset by 80px)
+    const distance = 80;
+    const attackerFinalX = centerX - distance;
+    const targetFinalX = centerX + distance;
+    
+    // Set attack positions (both figures move to center with distance)
+    setAttackPositions({
+      [attacker.id]: { x: attackerFinalX, y: centerY },
+      [target.id]: { x: targetFinalX, y: centerY }
+    });
+    
     // Set both figures as attacking
     setAttackingFigures([attacker.id, target.id]);
+    
+    // Don't scale during "Attack Prepare" phase, but keep movement animation
     
     // Add opponent to flipped list (keep them flipped after animation)
     if (!target.isMyFigure) {
       setFlippedOpponents(prev => [...prev.filter(id => id !== target.id), target.id]);
     }
     
-    // Reset attack state after animation duration
+    // Start with "Attack Prepare" phase
+    setAttackPhase('prepare');
+    
+    // After 1 second, switch to "Attack" phase and scale figures
+    setTimeout(() => {
+      setAttackPhase('attack');
+      setScaledFigures([attacker.id, target.id]);
+    }, 1000);
+    
+    // Reset attack state after total animation duration
     setTimeout(() => {
       setAttackingFigures([]);
-    }, 2000); // Attack animation duration
+      setAttackPositions({});
+      setScaledFigures([]);
+      setAttackPhase(null);
+    }, 2000); // Total attack animation duration
   };
 
 
@@ -382,9 +420,10 @@ export default function GamePage() {
           {riveStatus === 'success' && figures.filter(f => f.isAlive).map((figure) => {
             const isAnimating = animatingFigure === figure.id;
             
-            // Use animation position if moving, otherwise use normal position
-            const x = figure.isMoving && figure.animX !== undefined ? figure.animX : (figure.col * actualCellWidth) + (actualCellWidth / 2);
-            const y = figure.isMoving && figure.animY !== undefined ? figure.animY : (figure.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
+            // Use attack position if attacking, otherwise use animation position if moving, otherwise use normal position
+            const attackPos = attackPositions[figure.id];
+            const x = attackPos ? attackPos.x : (figure.isMoving && figure.animX !== undefined ? figure.animX : (figure.col * actualCellWidth) + (actualCellWidth / 2));
+            const y = attackPos ? attackPos.y : (figure.isMoving && figure.animY !== undefined ? figure.animY : (figure.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25));
             
             return (
               <div
@@ -395,7 +434,8 @@ export default function GamePage() {
                   top: y,
                   transform: 'translate(-50%, -50%)',
                   pointerEvents: 'none',
-                  zIndex: 5
+                  zIndex: 5,
+                  transition: attackPos ? 'left 0.3s ease-in-out, top 0.3s ease-in-out' : 'none'
                 }}
               >
                   <RpsFigure
@@ -403,15 +443,17 @@ export default function GamePage() {
                     weapon={figure.weapon}
                     trigger={
                       isAnimating ? jumpDirection : 
-                      attackingFigures.includes(figure.id) ? 'Atttack Prepare' : 
+                      attackingFigures.includes(figure.id) ? 
+                        (attackPhase === 'prepare' ? 'Atttack Prepare' : 'Attack') : 
                       undefined
                     }
                     isMyFigure={figure.isMyFigure}
                     style={{ 
                       width: `${figureSize}px`, 
                       height: `${figureSize}px`, 
-                      transform: `scale(${figureScale})${!figure.isMyFigure && flippedOpponents.includes(figure.id) ? ' scaleX(-1)' : ''}`, 
-                      transformOrigin: 'center center' 
+                      transform: `scale(${scaledFigures.includes(figure.id) ? figureScale * 2 : figureScale})${!figure.isMyFigure && flippedOpponents.includes(figure.id) ? ' scaleX(-1)' : ''}`, 
+                      transformOrigin: 'center center',
+                      transition: 'transform 0.3s ease-in-out'
                     }}
                   />
               </div>
