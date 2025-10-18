@@ -18,6 +18,9 @@ interface Figure {
   animY?: number;
 }
 
+// Game constants
+const DISTANCE_BETWEEN_FIGURES_DURING_ATTACK = 40;
+
 export default function GamePage() {
   // Load shared Rive file once and share across all figures
   const { riveFile, status: riveStatus } = useRiveFile({ src: '/figures/fig1.riv' });
@@ -314,10 +317,9 @@ export default function GamePage() {
     const centerX = (attackerX + targetX) / 2;
     const centerY = (attackerY + targetY) / 2;
     
-    // Add some distance between figures (offset by 80px)
-    const distance = 80;
-    const attackerFinalX = centerX - distance;
-    const targetFinalX = centerX + distance;
+    // Add some distance between figures
+    const attackerFinalX = centerX - DISTANCE_BETWEEN_FIGURES_DURING_ATTACK;
+    const targetFinalX = centerX + DISTANCE_BETWEEN_FIGURES_DURING_ATTACK;
     
     // Set attack positions (both figures move to center with distance)
     setAttackPositions({
@@ -341,10 +343,10 @@ export default function GamePage() {
       setAttackPhase('attack');
       setScaledFigures([attacker.id, target.id]);
       
-      // After 200ms more, start death animation for loser
+      // After 400ms more, start death animation for loser
       setTimeout(() => {
         setDyingFigures([loser.id]);
-      }, 200);
+      }, 400);
     }, 400);
     
     // Reset attack state and resolve combat after total animation duration
