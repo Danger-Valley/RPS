@@ -499,7 +499,7 @@ export default function GamePage() {
                       height: `${figureSize}px`, 
                       transform: `scale(${scaledFigures.includes(figure.id) ? figureScale * 2 : figureScale})${!figure.isMyFigure && flippedOpponents.includes(figure.id) ? ' scaleX(-1)' : ''}`, 
                       transformOrigin: 'center center',
-                      transition: 'transform 0.3s ease-in-out'
+                      transition: scaledFigures.includes(figure.id) ? 'transform 0.3s ease-in-out' : 'none'
                     }}
                   />
               </div>
