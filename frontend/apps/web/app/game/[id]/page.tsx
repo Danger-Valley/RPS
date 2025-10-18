@@ -47,19 +47,19 @@ export default function GamePage() {
     const initialFigures: Figure[] = [];
     let figureId = 0;
     
-    // Create opponent figures (top two rows)
-    for (let row = 0; row < 2; row++) {
-      for (let col = 0; col < cols; col++) {
-        initialFigures.push({
-          id: `opponent-${figureId++}`,
-          row,
-          col,
-          weapon: 0,
-          isMyFigure: false,
-          isAlive: true
-        });
-      }
-    }
+        // Create opponent figures (top two rows)
+        for (let row = 0; row < 2; row++) {
+          for (let col = 0; col < cols; col++) {
+            initialFigures.push({
+              id: `opponent-${figureId++}`,
+              row,
+              col,
+              weapon: 0, // Initially no weapon visible
+              isMyFigure: false,
+              isAlive: true
+            });
+          }
+        }
     
     // Create my figures (bottom two rows)
     for (let row = 4; row < 6; row++) {
@@ -97,6 +97,10 @@ export default function GamePage() {
   // Animation trigger - track which figure should animate
   const [animatingFigure, setAnimatingFigure] = useState<string | null>(null);
   const [jumpDirection, setJumpDirection] = useState<'Jump Forward' | 'Jump Left' | 'Jump Right'>('Jump Forward');
+  
+  // Attack system
+  const [attackingFigures, setAttackingFigures] = useState<string[]>([]);
+  const [flippedOpponents, setFlippedOpponents] = useState<string[]>([]);
   
   // Movement system
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
@@ -145,6 +149,21 @@ export default function GamePage() {
       setAvailableMoves(moves);
       console.log('Selected figure:', figure.id, 'Available moves:', moves);
       return;
+    }
+    
+    // If clicking on an opponent figure and I have a selected figure, check if it's adjacent
+    if (selectedFigure && figure && !figure.isMyFigure) {
+      const cellRow = Math.floor(cellKey / cols);
+      const cellCol = cellKey % cols;
+      const isAdjacent = Math.abs(selectedFigure.row - cellRow) + Math.abs(selectedFigure.col - cellCol) === 1;
+      
+      if (isAdjacent) {
+        console.log('Attacking opponent figure:', figure.id);
+        attackFigure(selectedFigure, figure);
+        setSelectedFigure(null);
+        setAvailableMoves([]);
+        return;
+      }
     }
     
     // If clicking on an available move cell, move the figure
@@ -260,6 +279,34 @@ export default function GamePage() {
     }, 200); // 200ms delay before position animation starts
   };
 
+  const attackFigure = (attacker: Figure, target: Figure) => {
+    console.log('Attack initiated:', attacker.id, 'attacks', target.id);
+    
+    // Set opponent weapon to 1 (stone) before attack
+    if (!target.isMyFigure) {
+      setFigures(prevFigures => 
+        prevFigures.map(f => 
+          f.id === target.id 
+            ? { ...f, weapon: 1 }
+            : f
+        )
+      );
+    }
+    
+    // Set both figures as attacking
+    setAttackingFigures([attacker.id, target.id]);
+    
+    // Add opponent to flipped list (keep them flipped after animation)
+    if (!target.isMyFigure) {
+      setFlippedOpponents(prev => [...prev.filter(id => id !== target.id), target.id]);
+    }
+    
+    // Reset attack state after animation duration
+    setTimeout(() => {
+      setAttackingFigures([]);
+    }, 2000); // Attack animation duration
+  };
+
 
   return (
     <main style={{
@@ -351,18 +398,22 @@ export default function GamePage() {
                   zIndex: 5
                 }}
               >
-                <RpsFigure
-                  riveFile={riveFile as any}
-                  weapon={figure.isMyFigure ? figure.weapon : 0}
-                  trigger={isAnimating ? jumpDirection : undefined}
-                  isMyFigure={figure.isMyFigure}
-                  style={{ 
-                    width: `${figureSize}px`, 
-                    height: `${figureSize}px`, 
-                    transform: `scale(${figureScale})`, 
-                    transformOrigin: 'center center' 
-                  }}
-                />
+                  <RpsFigure
+                    riveFile={riveFile as any}
+                    weapon={figure.weapon}
+                    trigger={
+                      isAnimating ? jumpDirection : 
+                      attackingFigures.includes(figure.id) ? 'Atttack Prepare' : 
+                      undefined
+                    }
+                    isMyFigure={figure.isMyFigure}
+                    style={{ 
+                      width: `${figureSize}px`, 
+                      height: `${figureSize}px`, 
+                      transform: `scale(${figureScale})${!figure.isMyFigure && flippedOpponents.includes(figure.id) ? ' scaleX(-1)' : ''}`, 
+                      transformOrigin: 'center center' 
+                    }}
+                  />
               </div>
             );
           })}

@@ -8,7 +8,7 @@ export type TriggerName =
   | 'Jump Forward'
   | 'Jump Left'
   | 'Jump Right'
-  | 'Attack Prepare'
+  | 'Atttack Prepare'
   | 'Attack'
   | 'Trap'
   | 'Death'
