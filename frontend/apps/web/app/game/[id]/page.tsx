@@ -2,7 +2,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useRiveFile } from '@rive-app/react-canvas';
 import { useParams } from 'next/navigation';
-import RpsFigure, { Weapon } from './RpsFigure';
+import RpsFigure, { Weapon, WEAPON_NAMES } from './RpsFigure';
 
 interface Figure {
   id: string;
@@ -338,15 +338,18 @@ export default function GamePage() {
     // Start with "Attack Prepare" phase
     setAttackPhase('prepare');
     
+    //TODO: if opponent wins, winner.weapon = 0. So I have to fetch it somehow.
+    console.log('Winner weapon:', WEAPON_NAMES[winner.weapon]);
+    const attackTimeMs = winner.weapon === Weapon.Stone ? 383 : winner.weapon === Weapon.Paper ? 500 : winner.weapon === Weapon.Scissors ? 966 : 400;
+
     // After 400ms, switch to "Attack" phase and scale figures
     setTimeout(() => {
       setAttackPhase('attack');
-      setScaledFigures([attacker.id, target.id]);
+      setScaledFigures([attacker.id, target.id]);      
       
-      // After 400ms more, start death animation for loser
       setTimeout(() => {
         setDyingFigures([loser.id]);
-      }, 400);
+      }, attackTimeMs);
     }, 400);
     
     // Reset attack state and resolve combat after total animation duration
@@ -496,7 +499,7 @@ export default function GamePage() {
                     trigger={
                       isAnimating ? jumpDirection : 
                       attackingFigures.includes(figure.id) ? 
-                        (attackPhase === 'prepare' ? 'Atttack Prepare' : 
+                        (attackPhase === 'prepare' ? 'Attack Prepare' : 
                          dyingFigures.includes(figure.id) ? 'Death' :
                          winningFigure === figure.id ? 'Attack' : 'Death') : 
                       undefined
