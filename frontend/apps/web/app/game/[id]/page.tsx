@@ -290,23 +290,42 @@ export default function GamePage() {
     console.log('Attack initiated:', attacker.id, 'attacks', target.id);
     
     // Determine winner early (before animations)
-    const attackerWins = Math.random() < 0.5;
-    const winner = attackerWins ? attacker : target;
-    const loser = attackerWins ? target : attacker;
-    
-    console.log('Combat outcome determined:', { winner: winner.id, loser: loser.id });
-    
-    // Set opponent weapon to 1 (stone) before attack
-    if (!target.isMyFigure) {
-      setFigures(prevFigures => 
-        prevFigures.map(f => 
-          f.id === target.id 
-            ? { ...f, weapon: 1 }
-            : f
-        )
-      );
+        
+    if (!target.isMyFigure && target.weapon === Weapon.None) {
+        //TODO: remove this. we have to fetch the weapon onchain
+        const rand = Math.floor(Math.random() * 3) + 1;
+        target.weapon = rand as Weapon;
+        // setFigures(prevFigures => 
+        //     prevFigures.map(f => 
+        //     f.id === target.id 
+        //         ? { ...f, weapon: rand as Weapon }
+        //         : f
+        //     )
+        // );
     }
     
+    let winner: Figure | null = null;
+    let loser: Figure | null = null;
+    // stone beats scissors, scissors beat paper, paper beats stone
+    if (attacker.weapon === target.weapon) {
+        //TODO: draw
+        winner = attacker;
+        loser = target;
+    }
+    else if (attacker.weapon === Weapon.Stone && target.weapon === Weapon.Scissors) {
+        winner = attacker;
+        loser = target;
+    } else if (attacker.weapon === Weapon.Scissors && target.weapon === Weapon.Paper) {
+        winner = attacker;
+        loser = target;
+    } else if (attacker.weapon === Weapon.Paper && target.weapon === Weapon.Stone) {
+        winner = attacker;
+        loser = target;
+    } else {
+        winner = target;
+        loser = attacker;
+    }
+
     // Calculate attack positions (both figures move to center between them)
     const attackerX = (attacker.col * actualCellWidth) + (actualCellWidth / 2);
     const attackerY = (attacker.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
@@ -367,7 +386,7 @@ export default function GamePage() {
       setTimeout(() => {
         setDyingFigures([]);
       }, 400);
-    }, 400+400+attackTimeMs); // Total attack animation duration
+    }, 400+200+attackTimeMs); // Total attack animation duration (200ms earlier)
   };
 
   const resolveCombatWithWinner = (attacker: Figure, target: Figure, winner: Figure) => {
@@ -378,10 +397,19 @@ export default function GamePage() {
       console.log('Moving attacker to:', target.row, target.col);
       
       // Calculate positions for smooth movement
-      const currentX = (attacker.col * actualCellWidth) + (actualCellWidth / 2);
-      const currentY = (attacker.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
+      // Use the actual attack position where the figure currently is (center between figures)
+      const attackerX = (attacker.col * actualCellWidth) + (actualCellWidth / 2);
+      const attackerY = (attacker.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
       const targetX = (target.col * actualCellWidth) + (actualCellWidth / 2);
       const targetY = (target.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
+      
+      // Calculate center position (where figures are during attack)
+      const centerX = (attackerX + targetX) / 2;
+      const centerY = (attackerY + targetY) / 2;
+      
+      // Current position is the attacker's attack position (center - distance)
+      const currentX = centerX - DISTANCE_BETWEEN_FIGURES_DURING_ATTACK;
+      const currentY = centerY;
       
       // Set attacker as moving and update position immediately
       setFigures(prevFigures => 
