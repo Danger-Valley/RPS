@@ -349,6 +349,7 @@ export default function GamePage() {
       
       setTimeout(() => {
         setDyingFigures([loser.id]);
+
       }, attackTimeMs);
     }, 400);
     
@@ -358,25 +359,44 @@ export default function GamePage() {
       setAttackPositions({});
       setScaledFigures([]);
       setAttackPhase(null);
-      setDyingFigures([]);
       setWinningFigure(null);
       
       // Resolve combat with predetermined winner
       resolveCombatWithWinner(attacker, target, winner);
-    }, 1400); // Total attack animation duration
+
+      setTimeout(() => {
+        setDyingFigures([]);
+      }, 400);
+    }, 400+400+attackTimeMs); // Total attack animation duration
   };
 
   const resolveCombatWithWinner = (attacker: Figure, target: Figure, winner: Figure) => {
     console.log('Combat resolution with predetermined winner:', { attacker: attacker.id, target: target.id, winner: winner.id });
     
     if (winner.id === attacker.id) {
-      // Attacker wins: attacker moves to target's cell, target disappears
+      // Attacker wins: attacker moves to target's cell with animation, target disappears
+      console.log('Moving attacker to:', target.row, target.col);
+      
+      // Calculate positions for smooth movement
+      const currentX = (attacker.col * actualCellWidth) + (actualCellWidth / 2);
+      const currentY = (attacker.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
+      const targetX = (target.col * actualCellWidth) + (actualCellWidth / 2);
+      const targetY = (target.row * actualCellHeight) + (actualCellHeight / 2) - (actualCellHeight * 0.25);
+      
+      // Set attacker as moving and update position immediately
       setFigures(prevFigures => 
         prevFigures.map(f => {
           if (f.id === attacker.id) {
-            // Attacker moves to target's position
-            console.log('Moving attacker to:', target.row, target.col);
-            return { ...f, row: target.row, col: target.col };
+            return { 
+              ...f, 
+              row: target.row, 
+              col: target.col,
+              isMoving: true,
+              oldRow: attacker.row,
+              oldCol: attacker.col,
+              animX: currentX,
+              animY: currentY
+            };
           } else if (f.id === target.id) {
             // Target disappears (set as not alive)
             console.log('Target dies:', f.id);
@@ -385,6 +405,51 @@ export default function GamePage() {
           return f;
         })
       );
+      
+      // Animate movement to target position
+      const startTime = Date.now();
+      const duration = 200; // 200ms movement animation
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing function for smooth animation
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        
+        const currentAnimX = currentX + (targetX - currentX) * easeProgress;
+        const currentAnimY = currentY + (targetY - currentY) * easeProgress;
+        
+        setFigures(prevFigures => 
+          prevFigures.map(f => 
+            f.id === attacker.id 
+              ? { ...f, animX: currentAnimX, animY: currentAnimY }
+              : f
+          )
+        );
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          // Animation complete
+          setFigures(prevFigures => 
+            prevFigures.map(f => 
+              f.id === attacker.id 
+                ? { 
+                    ...f, 
+                    isMoving: false,
+                    oldRow: undefined,
+                    oldCol: undefined,
+                    animX: undefined,
+                    animY: undefined
+                  }
+                : f
+            )
+          );
+        }
+      };
+      
+      requestAnimationFrame(animate);
     } else {
       // Target wins: target stays in place, attacker disappears
       setFigures(prevFigures => 
