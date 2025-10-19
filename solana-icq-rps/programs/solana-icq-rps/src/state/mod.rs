@@ -12,3 +12,5 @@ pub use phase::*;
 
 pub mod piece;
 pub use piece::*;
+
+pub const NOT_SET: u8 = 255;

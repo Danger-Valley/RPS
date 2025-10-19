@@ -18,7 +18,7 @@ pub struct CreateGame<'info> {
         seeds = [b"game", registry.key().as_ref(), &registry.next_game_id.to_le_bytes()],
         bump,
         payer = payer,
-        space = Game::INIT_SPACE,
+        space = Game::SIZE,
     )]
     pub game: Account<'info, Game>,
 

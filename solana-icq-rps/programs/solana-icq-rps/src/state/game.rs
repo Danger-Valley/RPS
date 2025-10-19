@@ -1,10 +1,11 @@
 use anchor_lang::prelude::*;
 
+use crate::errors::ErrorCode;
 use crate::{BoardCellOwner, Choice, Phase, Piece};
 
 pub const WIDTH: u8 = 7;
 pub const HEIGHT: u8 = 6;
-pub const CELLS: usize = (WIDTH * HEIGHT) as usize;
+pub const CELLS: usize = (WIDTH as usize) * (HEIGHT as usize);
 
 #[account]
 pub struct Registry {
@@ -44,6 +45,11 @@ impl Game {
     pub fn phase(&self) -> Phase {
         Phase::from(self.phase)
     }
+
+    pub const SIZE_PLAIN: usize =
+        4 + 32 + 32 + 32 + 1 + 1 + CELLS + CELLS + 2 + 2 +
+            1 + 1 + 1 + 1 + 1 + 1 + 1 + 1;
+    pub const SIZE: usize = 8 + Self::SIZE_PLAIN + 16;
 }
 
 pub fn clear_board(g: &mut Game) {
@@ -60,4 +66,23 @@ pub fn clear_board(g: &mut Game) {
     g.choice_made1 = false;
     g.choice0 = Choice::None as u8;
     g.choice1 = Choice::None as u8;
+}
+
+pub fn validate_cell(idx: u8) -> Result<()> {
+    require!((idx as usize) < CELLS, ErrorCode::BadCell);
+    Ok(())
+}
+
+pub fn _y(idx: u8) -> u8 {
+    idx / WIDTH
+}
+pub fn _x(idx: u8) -> u8 {
+    idx % WIDTH
+}
+
+pub fn is_p1_spawn(idx: u8) -> bool {
+    _y(idx) <= 1
+}
+pub fn is_p0_spawn(idx: u8) -> bool {
+    _y(idx) >= 4
 }

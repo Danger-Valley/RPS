@@ -1,0 +1,148 @@
+use crate::errors::ErrorCode;
+use crate::events::{GameStarted, LineupSubmitted};
+use crate::state::*;
+use anchor_lang::prelude::*;
+
+#[derive(Accounts)]
+pub struct SubmitLineup<'info> {
+    #[account(
+        mut,
+        seeds = [b"game", registry.key().as_ref(), &game.id.to_le_bytes()],
+        bump
+    )]
+    pub game: Account<'info, Game>,
+    /// CHECK: seed-only
+    #[account(seeds=[b"registry"], bump)]
+    pub registry: UncheckedAccount<'info>,
+    pub signer: Signer<'info>,
+}
+
+pub fn submit_lineup(
+    ctx: Context<SubmitLineup>,
+    positions: Vec<u8>,
+    pieces: Vec<u8>,
+) -> Result<()> {
+    do_submit_lineup(
+        &mut ctx.accounts.game,
+        &ctx.accounts.signer,
+        &positions,
+        &pieces,
+    )
+}
+
+#[derive(Accounts)]
+pub struct SubmitLineupXy<'info> {
+    pub inner: SubmitLineup<'info>,
+}
+
+pub fn submit_lineup_xy(
+    ctx: Context<SubmitLineupXy>,
+    xs: Vec<u8>,
+    ys: Vec<u8>,
+    pieces: Vec<u8>,
+) -> Result<()> {
+    require!(
+        xs.len() == ys.len() && xs.len() == pieces.len(),
+        ErrorCode::LineupLengthMismatch
+    );
+    let mut pos = Vec::with_capacity(xs.len());
+    for i in 0..xs.len() {
+        require!(xs[i] < WIDTH && ys[i] < HEIGHT, ErrorCode::BadCell);
+        pos.push(ys[i] * WIDTH + xs[i]);
+    }
+    do_submit_lineup(
+        &mut ctx.accounts.inner.game,
+        &ctx.accounts.inner.signer,
+        &pos,
+        &pieces,
+    )
+}
+
+// -------- core logic --------
+
+fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u8]) -> Result<()> {
+    match g.phase() {
+        Phase::FlagsPlaced | Phase::LineupP0Set | Phase::LineupP1Set => {}
+        _ => return err!(ErrorCode::BadPhase),
+    }
+    require!(
+        positions.len() == pieces.len(),
+        ErrorCode::LineupLengthMismatch
+    );
+    require!(!positions.is_empty(), ErrorCode::LineupPositionsEmpty);
+
+    let s = signer.key();
+    let is_p0 = s == g.player0;
+    let is_p1 = s == g.player1;
+    require!(is_p0 || is_p1, ErrorCode::NotParticipant);
+
+    for (i, &idx) in positions.iter().enumerate() {
+        validate_cell(idx)?;
+        let cell = idx as usize;
+        require!(
+            g.board_cells_owner[cell] == BoardCellOwner::None as u8
+                && g.board_pieces[cell] == Piece::Empty as u8,
+            ErrorCode::CellTaken
+        );
+        if is_p0 {
+            require!(is_p0_spawn(idx), ErrorCode::Player0BadRow);
+        } else {
+            require!(is_p1_spawn(idx), ErrorCode::Player1BadRow);
+        }
+
+        let p = Piece::from(pieces[i]);
+        require!(
+            matches!(p, Piece::Rock | Piece::Paper | Piece::Scissors),
+            ErrorCode::OnlyRpsAllowed
+        );
+
+        g.board_cells_owner[cell] = if is_p0 {
+            BoardCellOwner::P0 as u8
+        } else {
+            BoardCellOwner::P1 as u8
+        };
+        g.board_pieces[cell] = p as u8;
+        if is_p0 {
+            g.live_player0 = g.live_player0.saturating_add(1);
+        } else {
+            g.live_player1 = g.live_player1.saturating_add(1);
+        }
+    }
+
+    if is_p0 {
+        require!(
+            g.phase() != Phase::LineupP0Set,
+            ErrorCode::Player0LineupAlreadyPlaced
+        );
+        g.phase = if g.phase() == Phase::LineupP1Set {
+            Phase::Active as u8
+        } else {
+            Phase::LineupP0Set as u8
+        };
+    } else {
+        require!(
+            g.phase() != Phase::LineupP1Set,
+            ErrorCode::Player1LineupAlreadyPlaced
+        );
+        g.phase = if g.phase() == Phase::LineupP0Set {
+            Phase::Active as u8
+        } else {
+            Phase::LineupP1Set as u8
+        };
+    }
+
+    emit!(LineupSubmitted {
+        id: g.id,
+        player: s,
+        count: positions.len() as u8
+    });
+    if g.phase() == Phase::Active {
+        g.is_player1_turn = false;
+        emit!(GameStarted {
+            id: g.id,
+            p0: g.player0,
+            p1: g.player1
+        });
+    }
+    Ok(())
+}
