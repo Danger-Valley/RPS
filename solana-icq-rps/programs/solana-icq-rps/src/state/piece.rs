@@ -20,3 +20,16 @@ impl From<u8> for Piece {
         }
     }
 }
+
+pub fn rps(attacker: Piece, defender: Piece) -> i8 {
+    use Piece::*;
+    if attacker == defender {
+        return 0;
+    }
+    match (attacker, defender) {
+        (Rock, Scissors) => 1,
+        (Scissors, Paper) => 1,
+        (Paper, Rock) => 1,
+        _ => -1,
+    }
+}
