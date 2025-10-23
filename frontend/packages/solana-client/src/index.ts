@@ -48,7 +48,7 @@ export class RpsGameClient {
   }
 
   // Get registry PDA
-  private registryPda(): PublicKey {
+  public registryPda(): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
       [Buffer.from('registry')],
       this.program.programId,
@@ -57,7 +57,7 @@ export class RpsGameClient {
   }
 
   // Get game PDA
-  private gamePda(registry: PublicKey, id: number): PublicKey {
+  public gamePda(registry: PublicKey, id: number): PublicKey {
     const b = Buffer.alloc(4);
     b.writeUInt32LE(id, 0);
     const [pda] = PublicKey.findProgramAddressSync(

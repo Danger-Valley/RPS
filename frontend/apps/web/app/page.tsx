@@ -12,8 +12,8 @@ export default function HomePage() {
   const [isCreatingGame, setIsCreatingGame] = useState(false);
   const [isCreatingPrivateGame, setIsCreatingPrivateGame] = useState(false);
   
-  // Initialize smart contract integration (we'll use a dummy game ID for now)
-  const { createGame, loading, error } = useRpsGame(0);
+  // Initialize smart contract integration
+  const { createGame, loading, error } = useRpsGame();
 
   const handleStartGame = async () => {
     if (!connected || !publicKey) {

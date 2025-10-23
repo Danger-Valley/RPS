@@ -88,21 +88,21 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
 
   // Load game state when gameId changes
   useEffect(() => {
-    if (gameClient && gameId !== undefined) {
+    if (gameClient && gameId !== undefined && gameId > 0) {
       loadGameState();
     }
   }, [gameClient, gameId]);
 
   const loadGameState = useCallback(async () => {
-    if (!gameClient || gameId === undefined) return;
+    if (!gameClient || gameId === undefined || gameId <= 0) return;
     
     setLoading(true);
     setError(null);
     
     try {
-      // Calculate game PDA
-      const registry = new PublicKey('EGayg9wGidJLkmUF98VNv167EBqyZ59TuXVAxjEopGGE'); // This should be the registry PDA
-      const gamePda = new PublicKey('EGayg9wGidJLkmUF98VNv167EBqyZ59TuXVAxjEopGGE'); // This should be calculated properly
+      // Calculate proper PDAs using the game client
+      const registry = gameClient.registryPda();
+      const gamePda = gameClient.gamePda(registry, gameId);
       
       const state = await gameClient.getGameState(gamePda);
       setGameState({
