@@ -73,6 +73,7 @@ export default function GamePage() {
     loading: gameLoading, 
     error: gameError, 
     refreshGameState,
+    joinGame,
     isPlayer0,
     isPlayer1,
     isMyTurn 
@@ -89,6 +90,13 @@ export default function GamePage() {
   // Authorization and game state management
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [authorizationError, setAuthorizationError] = useState<string | null>(null);
+  const [canJoinGame, setCanJoinGame] = useState(false);
+  const [isJoiningGame, setIsJoiningGame] = useState(false);
+
+  // Helper function to check if an address is empty/default
+  const isEmptyAddress = (address: string): boolean => {
+    return !address || address === 'null' || address === '' || address === '11111111111111111111111111111111';
+  };
 
   // Initialize figures array from smart contract data
   const [figures, setFigures] = useState<Figure[]>([]);
@@ -129,8 +137,8 @@ export default function GamePage() {
   useEffect(() => {
     if (gameState && isAuthorized) {
       const newFigures: Figure[] = [];
-      let figureId = 0;
-      
+    let figureId = 0;
+    
       // Convert smart contract data to figures
       for (let i = 0; i < 42; i++) {
         const row = Math.floor(i / cols);
@@ -145,20 +153,20 @@ export default function GamePage() {
         if (owner !== 0) { // 0 = None in Owner enum
           newFigures.push({
             id: `figure-${figureId++}`,
-            row,
-            col,
+              row,
+              col,
             weapon: piece as Weapon, // Convert Piece enum to Weapon
             isMyFigure,
-            isAlive: true
-          });
+              isAlive: true
+            });
+          }
         }
-      }
-      
+    
       setFigures(newFigures);
     }
   }, [gameState, isAuthorized, isPlayer0, isPlayer1]);
 
-  // Check authorization when game state loads
+  // Check authorization and join eligibility when game state loads
   useEffect(() => {
     if (gameState && publicKey) {
       console.log('Game state data:', {
@@ -170,20 +178,53 @@ export default function GamePage() {
       });
       
       const userAddress = publicKey.toString();
-      const isPlayer0 = String(gameState.p0) === userAddress;
-      const isPlayer1 = String(gameState.p1) === userAddress;
+      const p0Address = String(gameState.p0);
+      const p1Address = String(gameState.p1);
+      const isPlayer0 = p0Address === userAddress && !isEmptyAddress(p0Address);
+      const isPlayer1 = p1Address === userAddress && !isEmptyAddress(p1Address);
       
+      // Check if user is already a player
       if (isPlayer0 || isPlayer1) {
         setIsAuthorized(true);
+        setCanJoinGame(false);
         setAuthorizationError(null);
         toast.success(`Welcome! You are ${isPlayer0 ? 'Player 0' : 'Player 1'}`);
       } else {
-        setIsAuthorized(false);
-        setAuthorizationError('You are not authorized to play this game. Only the game players can access it.');
-        toast.error('Not authorized to play this game');
+        // Check if game can be joined (has empty slot)
+        const hasEmptySlot = isEmptyAddress(p0Address) || isEmptyAddress(p1Address);
+        
+        if (hasEmptySlot) {
+          setIsAuthorized(false);
+          setCanJoinGame(true);
+          setAuthorizationError(null);
+        } else {
+          setIsAuthorized(false);
+          setCanJoinGame(false);
+          setAuthorizationError('You are not authorized to play this game. Only the game players can access it.');
+          toast.error('Not authorized to play this game');
+        }
       }
     }
   }, [gameState, publicKey]);
+
+  // Handle joining the game
+  const handleJoinGame = async () => {
+    if (!joinGame || isJoiningGame) return;
+    
+    setIsJoiningGame(true);
+    toast.loading('Joining game...', { id: 'join-game' });
+    
+    try {
+      await joinGame(gameId);
+      toast.success('Successfully joined the game!', { id: 'join-game' });
+      // The useEffect will handle updating the authorization state
+    } catch (err) {
+      console.error('Failed to join game:', err);
+      toast.error(`Failed to join game: ${err}`, { id: 'join-game' });
+    } finally {
+      setIsJoiningGame(false);
+    }
+  };
 
   // Show loading state
   if (gameLoading) {
@@ -230,6 +271,69 @@ export default function GamePage() {
           >
             Retry
           </button>
+        </div>
+      </main>
+    );
+  }
+
+  // Show join game screen
+  if (canJoinGame) {
+    return (
+      <main style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        fontFamily: 'system-ui, sans-serif',
+        background: 'linear-gradient(135deg, #0e1419 0%, #11171c 100%)'
+      }}>
+        <div style={{ 
+          textAlign: 'center',
+          background: '#0e1419',
+          border: '1px solid #2b3a44',
+          borderRadius: '12px',
+          padding: '48px',
+          maxWidth: '500px',
+          width: '90%'
+        }}>
+          <div style={{ fontSize: 28, color: '#66fcf1', marginBottom: 16, fontWeight: 'bold' }}>
+            Join Game #{gameId}
+          </div>
+          <div style={{ color: '#c5c6c7', marginBottom: 24, fontSize: 16, lineHeight: 1.5 }}>
+            This game is waiting for a second player. Would you like to join?
+          </div>
+          
+          <div style={{ marginBottom: 32, fontSize: 14, color: '#8a9ba8' }}>
+            <div>Game Phase: {gameState?.phase || 'Unknown'}</div>
+            <div>Current Players: {(!isEmptyAddress(String(gameState?.p0 || ''))) ? '1' : '0'} / 2</div>
+            {gameState?.p0 && !isEmptyAddress(String(gameState.p0)) && (
+              <div>Player 0: {String(gameState.p0).slice(0, 8)}...</div>
+            )}
+          </div>
+          
+          <button 
+            onClick={handleJoinGame}
+            disabled={isJoiningGame}
+            style={{
+              background: isJoiningGame ? '#2b3a44' : '#66fcf1',
+              color: isJoiningGame ? '#8a9ba8' : '#0e1419',
+              border: 'none',
+              padding: '16px 32px',
+              borderRadius: '8px',
+              cursor: isJoiningGame ? 'not-allowed' : 'pointer',
+              fontSize: 18,
+              fontWeight: 'bold',
+              transition: 'all 0.2s ease',
+              marginBottom: 16,
+              width: '100%'
+            }}
+          >
+            {isJoiningGame ? 'Joining...' : 'Join Game'}
+          </button>
+          
+          <div style={{ color: '#8a9ba8', fontSize: 12 }}>
+            You will become Player {(!isEmptyAddress(String(gameState?.p0 || ''))) ? '1' : '0'}
+          </div>
         </div>
       </main>
     );

@@ -176,9 +176,9 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
     setError(null);
     
     try {
-      // Calculate game PDA for the target game
-      const registry = new PublicKey('EGayg9wGidJLkmUF98VNv167EBqyZ59TuXVAxjEopGGE'); // This should be the registry PDA
-      const gamePda = new PublicKey('EGayg9wGidJLkmUF98VNv167EBqyZ59TuXVAxjEopGGE'); // This should be calculated properly
+      // Calculate proper PDAs using the game client
+      const registry = gameClient.registryPda();
+      const gamePda = gameClient.gamePda(registry, targetGameId);
       
       await gameClient.joinGame(gamePda);
       await loadGameState();
