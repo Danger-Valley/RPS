@@ -124,6 +124,10 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
       throw new Error('Game client not initialized');
     }
     
+    if (loading) {
+      throw new Error('Game creation already in progress');
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -154,12 +158,13 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
       
       return { gameId, gamePda: gamePda.toString() };
     } catch (err) {
+      console.error('Create game error:', err);
       setError(`Failed to create game: ${err}`);
       throw err;
     } finally {
       setLoading(false);
     }
-  }, [gameClient, publicKey]);
+  }, [gameClient, publicKey, loading]);
 
   const joinGame = useCallback(async (targetGameId: number) => {
     if (!gameClient) {

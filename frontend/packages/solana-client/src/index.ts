@@ -35,6 +35,7 @@ export class RpsGameClient {
   private program: Program<SolanaIcqRps>;
   private provider: AnchorProvider;
   private connection: Connection;
+  private isCreatingGame: boolean = false;
 
   constructor(provider: AnchorProvider, idl: SolanaIcqRps) {
     this.provider = provider;
@@ -69,31 +70,51 @@ export class RpsGameClient {
 
   // Create a new game
   async createGame(): Promise<{ gameId: number; gamePda: PublicKey }> {
-    const registry = this.registryPda();
-    
-    // Get next game ID from registry
-    let nextId = 0;
-    try {
-      const reg = await this.program.account.registry.fetch(registry);
-      nextId = Number(reg.nextGameId);
-    } catch (error) {
-      console.log('Registry not found, starting with game ID 0');
+    // Check if already creating a game
+    if (this.isCreatingGame) {
+      throw new Error('Game creation already in progress');
     }
+    
+    this.isCreatingGame = true;
+    
+    try {
+      const registry = this.registryPda();
+      
+      // Get next game ID from registry
+      let nextId = 0;
+      try {
+        const reg = await this.program.account.registry.fetch(registry);
+        nextId = Number(reg.nextGameId);
+      } catch (error) {
+        console.log('Registry not found, starting with game ID 0');
+      }
 
-    const gamePda = this.gamePda(registry, nextId);
+      const gamePda = this.gamePda(registry, nextId);
 
-    // Call the create_game instruction on the smart contract
-    await this.program.methods
-      .createGame()
-      .accountsStrict({
-        registry,
-        game: gamePda,
-        payer: this.provider.wallet.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
+      // Add a small delay to ensure unique transaction timing
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-    return { gameId: nextId, gamePda };
+      // Call the create_game instruction on the smart contract
+      await this.program.methods
+        .createGame()
+        .accountsStrict({
+          registry,
+          game: gamePda,
+          payer: this.provider.wallet.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc({
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
+          commitment: 'confirmed',
+          maxRetries: 0 // Prevent automatic retries
+        });
+
+      return { gameId: nextId, gamePda };
+    } finally {
+      // Reset the flag
+      this.isCreatingGame = false;
+    }
   }
 
   // Join an existing game

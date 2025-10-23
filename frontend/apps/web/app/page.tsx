@@ -21,6 +21,11 @@ export default function HomePage() {
       return;
     }
 
+    if (isCreatingGame || loading) {
+      toast.error('Game creation already in progress');
+      return;
+    }
+
     setIsCreatingGame(true);
     toast.loading('Creating game...', { id: 'create-game' });
 
@@ -93,8 +98,8 @@ export default function HomePage() {
             transition: 'all 0.2s ease',
             opacity: connected && !isCreatingGame ? 1 : 0.6
           }}
-          disabled={!connected || isCreatingGame || isCreatingPrivateGame}
-          onClick={handleStartGame}
+                 disabled={!connected || isCreatingGame || isCreatingPrivateGame || loading}
+                 onClick={handleStartGame}
         >
           {isCreatingGame ? 'Creating...' : 'Start Game'}
         </button>
@@ -111,8 +116,8 @@ export default function HomePage() {
             transition: 'all 0.2s ease',
             opacity: connected && !isCreatingPrivateGame ? 1 : 0.6
           }}
-          disabled={!connected || isCreatingGame || isCreatingPrivateGame}
-          onClick={handleStartPrivateGame}
+                 disabled={!connected || isCreatingGame || isCreatingPrivateGame || loading}
+                 onClick={handleStartPrivateGame}
         >
           {isCreatingPrivateGame ? 'Creating...' : 'Start Private Game'}
         </button>
@@ -156,7 +161,7 @@ export default function HomePage() {
         <h3 style={{ color: '#66fcf1', marginTop: 0 }}>How to Play</h3>
         <div style={{ color: '#c5c6c7', lineHeight: '1.6' }}>
           <p>1. Connect your Solana wallet</p>
-          <p>2. Click "Start Game" to create a new game</p>
+          <p>2. Click &quot;Start Game&quot; to create a new game</p>
           <p>3. Share the game ID with friends to invite them</p>
           <p>4. Place your flag and set up your pieces</p>
           <p>5. Battle with Rock, Paper, Scissors strategy!</p>
