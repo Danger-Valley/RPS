@@ -34,7 +34,7 @@ export interface UseRpsGameReturn {
   error: string | null;
   
   // Game actions
-  createGame: () => Promise<void>;
+  createGame: () => Promise<{ gameId: number; gamePda: string }>;
   joinGame: (gameId: number) => Promise<void>;
   placeFlag: (x: number, y: number) => Promise<void>;
   submitLineup: (isP0: boolean, flagPos: number) => Promise<void>;
@@ -70,7 +70,11 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
           wallet.adapter as any,
           { commitment: 'confirmed' }
         );
-        const client = new RpsGameClient(provider);
+        
+        // Import the real IDL from the smart contract
+        const idl = require('../idl/idl.json');
+        
+        const client = new RpsGameClient(provider, idl);
         setGameClient(client);
         setError(null);
       } catch (err) {
@@ -104,7 +108,8 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
       setGameState({
         gameId,
         gamePda,
-        ...state
+        ...state,
+        phase: state.phase as Phase
       });
     } catch (err) {
       setError(`Failed to load game state: ${err}`);
@@ -113,10 +118,10 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
     }
   }, [gameClient, gameId]);
 
-  const createGame = useCallback(async () => {
+  const createGame = useCallback(async (): Promise<{ gameId: number; gamePda: string }> => {
     if (!gameClient) {
       setError('Game client not initialized');
-      return;
+      throw new Error('Game client not initialized');
     }
     
     setLoading(true);
@@ -146,8 +151,11 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
         p1: '',
         winner: null
       }));
+      
+      return { gameId, gamePda: gamePda.toString() };
     } catch (err) {
       setError(`Failed to create game: ${err}`);
+      throw err;
     } finally {
       setLoading(false);
     }

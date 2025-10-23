@@ -1,6 +1,6 @@
 import * as anchor from '@coral-xyz/anchor';
 import { AnchorProvider, Program } from '@coral-xyz/anchor';
-import { Connection, PublicKey, Keypair } from '@solana/web3.js';
+import { Connection, PublicKey, Keypair, Transaction, SystemProgram } from '@solana/web3.js';
 import { SolanaIcqRps } from './types';
 import {
   WIDTH,
@@ -36,17 +36,13 @@ export class RpsGameClient {
   private provider: AnchorProvider;
   private connection: Connection;
 
-  constructor(provider: AnchorProvider) {
+  constructor(provider: AnchorProvider, idl: SolanaIcqRps) {
     this.provider = provider;
     this.connection = provider.connection;
     
-    // Initialize the program
+    // Initialize the program with the provided IDL
     this.program = new Program<SolanaIcqRps>(
-      {
-        address: new PublicKey('EGayg9wGidJLkmUF98VNv167EBqyZ59TuXVAxjEopGGE'),
-        // We'll need to load the IDL from the smart contract
-        // For now, we'll use the types we defined
-      } as any,
+      idl,
       provider
     );
   }
@@ -75,10 +71,10 @@ export class RpsGameClient {
   async createGame(): Promise<{ gameId: number; gamePda: PublicKey }> {
     const registry = this.registryPda();
     
-    // Get next game ID
+    // Get next game ID from registry
     let nextId = 0;
     try {
-      const reg: any = await this.program.account.registry.fetch(registry);
+      const reg = await this.program.account.registry.fetch(registry);
       nextId = Number(reg.nextGameId);
     } catch (error) {
       console.log('Registry not found, starting with game ID 0');
@@ -86,13 +82,14 @@ export class RpsGameClient {
 
     const gamePda = this.gamePda(registry, nextId);
 
+    // Call the create_game instruction on the smart contract
     await this.program.methods
       .createGame()
       .accountsStrict({
         registry,
         game: gamePda,
         payer: this.provider.wallet.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
+        systemProgram: SystemProgram.programId,
       })
       .rpc();
 
