@@ -5,7 +5,7 @@ use crate::{clear_board, errors::ErrorCode, events::GameCreated, Game, Phase, Re
 #[derive(Accounts)]
 pub struct CreateGame<'info> {
     #[account(
-        init,
+        init_if_needed,
         seeds = [b"registry"],
         bump,
         payer = payer,
