@@ -17,6 +17,7 @@ import {
   u8,
   decodeGame,
   printBoard,
+  printGameBoard,
 } from './types';
 
 export type Commitment = 'processed' | 'confirmed' | 'finalized';
@@ -170,6 +171,27 @@ export class RpsGameClient {
       .rpc();
   }
 
+  // Submit custom lineup with specific positions and pieces
+  async submitCustomLineup(
+    gamePda: PublicKey,
+    xs: number[],
+    ys: number[],
+    pieces: number[]
+  ): Promise<void> {
+    const registry = this.registryPda();
+
+    await this.program.methods
+      .submitLineupXy(u8(xs), u8(ys), u8(pieces))
+      .accountsStrict({
+        inner: {
+          game: gamePda,
+          registry,
+          signer: this.provider.wallet.publicKey,
+        },
+      })
+      .rpc();
+  }
+
   // Move a piece
   async movePiece(
     gamePda: PublicKey,
@@ -213,7 +235,7 @@ export class RpsGameClient {
   // Print current board state
   async printGameBoard(gamePda: PublicKey) {
     const gameState = await this.getGameState(gamePda);
-    printBoard(gameState.owners, gameState.pieces);
+    printGameBoard(gameState);
     return gameState;
   }
 

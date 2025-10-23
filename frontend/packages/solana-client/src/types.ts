@@ -428,10 +428,30 @@ export const printBoard = (owners: Owner[], pieces: Piece[]) => {
     return o === Owner.P0 ? ` ${base.toLowerCase()} ` : ` ${base} `;
   };
   const rows = board2D(
-    [...Array(CELLS).keys()].map((i) => sym(owners[i], pieces[i])),
+    [...Array(CELLS).keys()].map((i) => sym(owners[i] || Owner.None, pieces[i] || Piece.Empty)),
   );
   console.log('\nBoard (y=0 top):');
-  for (let y = 0; y < HEIGHT; y++) console.log(rows[y].join(''));
+  for (let y = 0; y < HEIGHT; y++) console.log(rows[y]?.join('') || '');
+};
+
+export const printGameBoard = (gameState: any) => {
+  console.log('\n=== GAME STATE DEBUG ===');
+  console.log('Game ID:', gameState.gameId);
+  console.log('Phase:', gameState.phase);
+  console.log('P0:', gameState.p0);
+  console.log('P1:', gameState.p1);
+  console.log('Is P1 Turn:', gameState.isP1Turn);
+  console.log('Live0:', gameState.live0, 'Live1:', gameState.live1);
+  console.log('FlagPos0:', gameState.flagPos0, 'FlagPos1:', gameState.flagPos1);
+  console.log('Tie Pending:', gameState.tiePending);
+  console.log('Choice Made P0:', gameState.choiceMade0, 'P1:', gameState.choiceMade1);
+  console.log('Choice P0:', gameState.choice0, 'P1:', gameState.choice1);
+  console.log('Winner:', gameState.winner);
+  
+  if (gameState.owners && gameState.pieces) {
+    printBoard(gameState.owners, gameState.pieces);
+  }
+  console.log('=== END GAME STATE ===\n');
 };
 
 export const decodeGame = (raw: any) => {

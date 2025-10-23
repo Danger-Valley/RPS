@@ -6,9 +6,11 @@ export enum Weapon {
   None = 0,
   Stone = 1,
   Paper = 2,
-  Scissors = 3
+  Scissors = 3,
+  Flag = 4,
+  Trap = 5,
 }
-export const WEAPON_NAMES = ['None', 'Stone', 'Paper', 'Scissors'];
+export const WEAPON_NAMES = ['None', 'Stone', 'Paper', 'Scissors', 'Flag', 'Trap'];
 // export type Weapon = 0 | 1 | 2 | 3; // 0=none,1=stone,2=paper,3=scissors
 export type TriggerName =
   | 'Weapon'

@@ -39,6 +39,7 @@ export interface UseRpsGameReturn {
   joinGame: (gameId: number) => Promise<void>;
   placeFlag: (x: number, y: number) => Promise<void>;
   submitLineup: (isP0: boolean, flagPos: number) => Promise<void>;
+  submitCustomLineup: (xs: number[], ys: number[], pieces: number[]) => Promise<void>;
   movePiece: (fromX: number, fromY: number, toX: number, toY: number) => Promise<void>;
   chooseWeapon: (choice: Choice) => Promise<void>;
   
@@ -105,12 +106,27 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
       const gamePda = gameClient.gamePda(registry, gameId);
       
       const state = await gameClient.getGameState(gamePda);
+      
+      // Print game board for debugging
+      console.log('=== LOADING GAME STATE ===');
+      console.log('Game ID:', gameId);
+      console.log('Game PDA:', gamePda.toString());
+      console.log('Registry PDA:', registry.toString());
+      
       setGameState({
         gameId,
         gamePda,
         ...state,
         phase: state.phase as Phase
       });
+      
+      // Print the game board after setting state
+      console.log('=== GAME STATE LOADED ===');
+      console.log('Owners:', state.owners);
+      console.log('Pieces:', state.pieces);
+      console.log('Phase:', state.phase);
+      console.log('P0:', state.p0);
+      console.log('P1:', state.p1);
     } catch (err) {
       setError(`Failed to load game state: ${err}`);
     } finally {
@@ -208,6 +224,25 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
     }
   }, [gameClient, gameState, loadGameState]);
 
+  const submitCustomLineup = useCallback(async (xs: number[], ys: number[], pieces: number[]) => {
+    if (!gameClient || !gameState) {
+      setError('Game client not initialized or no game state');
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      await gameClient.submitCustomLineup(gameState.gamePda, xs, ys, pieces);
+      await loadGameState();
+    } catch (err) {
+      setError(`Failed to submit custom lineup: ${err}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [gameClient, gameState, loadGameState]);
+
   const movePiece = useCallback(async (fromX: number, fromY: number, toX: number, toY: number) => {
     if (!gameClient || !gameState) {
       setError('Game client not initialized or no game state');
@@ -277,6 +312,7 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
     joinGame,
     placeFlag,
     submitLineup,
+    submitCustomLineup,
     movePiece,
     chooseWeapon,
     refreshGameState,

@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRiveFile } from '@rive-app/react-canvas';
 import { useParams } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -33,40 +33,6 @@ export default function GamePage() {
   const { connected, publicKey } = useWallet();
   const gameId = parseInt(id || '0', 10);
   
-  // Validate game ID
-  if (isNaN(gameId) || gameId <= 0) {
-    return (
-      <main style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '100vh',
-        fontFamily: 'system-ui, sans-serif',
-        background: 'linear-gradient(135deg, #0e1419 0%, #11171c 100%)'
-      }}>
-        <div style={{ 
-          textAlign: 'center',
-          background: '#0e1419',
-          border: '1px solid #2b3a44',
-          borderRadius: '12px',
-          padding: '48px',
-          maxWidth: '400px',
-          width: '90%'
-        }}>
-          <div style={{ fontSize: 28, color: '#ff6b6b', marginBottom: 16, fontWeight: 'bold' }}>
-            Invalid Game ID
-          </div>
-          <div style={{ color: '#c5c6c7', marginBottom: 32, fontSize: 16, lineHeight: 1.5 }}>
-            The game ID "{id}" is not valid. Please check the URL and try again.
-          </div>
-          <div style={{ color: '#8a9ba8', fontSize: 14 }}>
-            Game ID must be a positive number
-          </div>
-        </div>
-      </main>
-    );
-  }
-  
   // Initialize smart contract integration
   const { 
     gameState, 
@@ -74,6 +40,7 @@ export default function GamePage() {
     error: gameError, 
     refreshGameState,
     joinGame,
+    submitCustomLineup,
     isPlayer0,
     isPlayer1,
     isMyTurn 
@@ -100,6 +67,11 @@ export default function GamePage() {
 
   // Initialize figures array from smart contract data
   const [figures, setFigures] = useState<Figure[]>([]);
+  
+  // Figure selection state
+  const [myLineup, setMyLineup] = useState<Figure[]>([]);
+  const [lineupSubmitted, setLineupSubmitted] = useState(false);
+  const [isSettingLineup, setIsSettingLineup] = useState(false);
 
   // Animation trigger - track which figure should animate
   const [animatingFigure, setAnimatingFigure] = useState<string | null>(null);
@@ -120,7 +92,96 @@ export default function GamePage() {
   // Weapon selection popup for ties
   const [showWeaponPopup, setShowWeaponPopup] = useState(false);
   const [pendingAttack, setPendingAttack] = useState<{attacker: Figure, target: Figure} | null>(null);
-  
+
+  // Generate random lineup (4 stones, 4 paper, 4 scissors, 1 flag, 1 trap)
+  const generateRandomLineup = useCallback(() => {
+    const lineup: Figure[] = [];
+    const pieces = [
+      ...Array(4).fill(Weapon.Stone),
+      ...Array(4).fill(Weapon.Paper), 
+      ...Array(4).fill(Weapon.Scissors),
+      Weapon.Flag,
+      Weapon.Trap
+    ];
+    
+    // Shuffle the pieces
+    const shuffledPieces = pieces.sort(() => Math.random() - 0.5);
+    
+    // Get spawn cells for the current player (bottom 2 rows for P0, top 2 rows for P1)
+    const spawnCells = isPlayer0 ? 
+      Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7) + 4, col: i % 7})) :
+      Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7), col: i % 7}));
+    
+    // Shuffle spawn cells
+    const shuffledCells = spawnCells.sort(() => Math.random() - 0.5);
+    
+    // Create figures
+    shuffledPieces.forEach((weapon, index) => {
+      if (index < shuffledCells.length) {
+        const cell = shuffledCells[index];
+        if (cell) {
+          lineup.push({
+            id: `lineup-${index}`,
+            row: cell.row,
+            col: cell.col,
+            weapon,
+            isMyFigure: true,
+            isAlive: true
+          });
+        }
+      }
+    });
+    
+    return lineup;
+  }, [isPlayer0]);
+
+  // Handle shuffling lineup
+  const handleShuffleLineup = useCallback(() => {
+    setMyLineup(generateRandomLineup());
+    toast.success('Lineup shuffled!');
+  }, [generateRandomLineup]);
+
+  // Handle submitting lineup
+  const handleSubmitLineup = useCallback(async () => {
+    if (!submitCustomLineup || myLineup.length === 0) return;
+    
+    try {
+      // Convert lineup to the format expected by the smart contract
+      const xs = myLineup.map(f => f.col);
+      const ys = myLineup.map(f => f.row);
+      const pieces = myLineup.map(f => f.weapon);
+      
+      await submitCustomLineup(xs, ys, pieces);
+      
+      setLineupSubmitted(true);
+      setIsSettingLineup(false);
+      toast.success('Lineup submitted successfully!');
+    } catch (err) {
+      console.error('Failed to submit lineup:', err);
+      toast.error(`Failed to submit lineup: ${err}`);
+    }
+  }, [submitCustomLineup, myLineup]);
+
+  // Handle joining the game
+  const handleJoinGame = useCallback(async () => {
+    if (!joinGame || isJoiningGame) return;
+    
+    setIsJoiningGame(true);
+    toast.loading('Joining game...', { id: 'join-game' });
+    
+    try {
+      await joinGame(gameId);
+      toast.success('Successfully joined the game!', { id: 'join-game' });
+      // The useEffect will handle updating the authorization state
+    } catch (err) {
+      console.error('Failed to join game:', err);
+      toast.error(`Failed to join game: ${err}`, { id: 'join-game' });
+    } finally {
+      setIsJoiningGame(false);
+    }
+  }, [joinGame, isJoiningGame, gameId]);
+
+  // All useEffect hooks
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
@@ -132,6 +193,22 @@ export default function GamePage() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Check if lineup should be set
+  useEffect(() => {
+    if (gameState && isAuthorized) {
+      const shouldSetLineup = 
+        (gameState.phase === 4 && isPlayer0 && !lineupSubmitted) || // FlagsPlaced phase, player 0
+        (gameState.phase === 5 && isPlayer1 && !lineupSubmitted);   // LineupP0Set phase, player 1
+      
+      if (shouldSetLineup && myLineup.length === 0) {
+        setIsSettingLineup(true);
+        setMyLineup(generateRandomLineup());
+      } else if (gameState.phase >= 7) { // Active phase or later
+        setIsSettingLineup(false);
+      }
+    }
+  }, [gameState, isAuthorized, isPlayer0, isPlayer1, lineupSubmitted, myLineup.length, generateRandomLineup]);
 
   // Update figures when game state changes
   useEffect(() => {
@@ -207,24 +284,39 @@ export default function GamePage() {
     }
   }, [gameState, publicKey]);
 
-  // Handle joining the game
-  const handleJoinGame = async () => {
-    if (!joinGame || isJoiningGame) return;
-    
-    setIsJoiningGame(true);
-    toast.loading('Joining game...', { id: 'join-game' });
-    
-    try {
-      await joinGame(gameId);
-      toast.success('Successfully joined the game!', { id: 'join-game' });
-      // The useEffect will handle updating the authorization state
-    } catch (err) {
-      console.error('Failed to join game:', err);
-      toast.error(`Failed to join game: ${err}`, { id: 'join-game' });
-    } finally {
-      setIsJoiningGame(false);
-    }
-  };
+  // Validate game ID
+  if (isNaN(gameId) || gameId <= 0) {
+    return (
+      <main style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        fontFamily: 'system-ui, sans-serif',
+        background: 'linear-gradient(135deg, #0e1419 0%, #11171c 100%)'
+      }}>
+        <div style={{ 
+          textAlign: 'center',
+          background: '#0e1419',
+          border: '1px solid #2b3a44',
+          borderRadius: '12px',
+          padding: '48px',
+          maxWidth: '400px',
+          width: '90%'
+        }}>
+          <div style={{ fontSize: 28, color: '#ff6b6b', marginBottom: 16, fontWeight: 'bold' }}>
+            Invalid Game ID
+          </div>
+          <div style={{ color: '#c5c6c7', marginBottom: 32, fontSize: 16, lineHeight: 1.5 }}>
+            The game ID &quot;{id}&quot; is not valid. Please check the URL and try again.
+          </div>
+          <div style={{ color: '#8a9ba8', fontSize: 14 }}>
+            Game ID must be a positive number
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   // Show loading state
   if (gameLoading) {
@@ -937,7 +1029,7 @@ export default function GamePage() {
           })}
           
           {/* All figures positioned absolutely */}
-          {riveStatus === 'success' && figures.filter(f => f.isAlive).map((figure) => {
+          {riveStatus === 'success' && (isSettingLineup ? myLineup : figures.filter(f => f.isAlive)).map((figure) => {
             const isAnimating = animatingFigure === figure.id;
             
             // Use attack position if attacking, otherwise use animation position if moving, otherwise use normal position
@@ -1040,6 +1132,65 @@ export default function GamePage() {
             <div style={{ fontSize: 24, color: '#66fcf1' }}>{gameState?.live1 || 0}</div>
           </div>
         </div>
+        
+        {/* Lineup Controls */}
+        {isSettingLineup && (
+          <div style={{ background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
+            <div style={{ color: '#66fcf1', fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>
+              Set Your Lineup
+            </div>
+            <div style={{ fontSize: 14, color: '#c5c6c7', marginBottom: 16, textAlign: 'center' }}>
+              Arrange your pieces: 4 Stones, 4 Paper, 4 Scissors, 1 Flag, 1 Trap
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
+              <button
+                onClick={handleShuffleLineup}
+                style={{
+                  background: '#2b3a44',
+                  color: '#c5c6c7',
+                  border: '1px solid #2b3a44',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = '#3a4a54';
+                  e.currentTarget.style.borderColor = '#66fcf1';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = '#2b3a44';
+                  e.currentTarget.style.borderColor = '#2b3a44';
+                }}
+              >
+                🔀 Shuffle
+              </button>
+              <button
+                onClick={handleSubmitLineup}
+                style={{
+                  background: '#66fcf1',
+                  color: '#0e1419',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 'bold',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = '#5ae5d8';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = '#66fcf1';
+                }}
+              >
+                ✅ Submit Lineup
+              </button>
+            </div>
+          </div>
+        )}
       </aside>
       
       {/* Weapon Selection Popup */}
