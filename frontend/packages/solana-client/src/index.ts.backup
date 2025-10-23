@@ -36,6 +36,7 @@ export class RpsGameClient {
   private provider: AnchorProvider;
   private connection: Connection;
   private isCreatingGame: boolean = false;
+  private isCreatingGame: boolean = false;
 
   constructor(provider: AnchorProvider, idl: SolanaIcqRps) {
     this.provider = provider;
@@ -91,6 +92,9 @@ export class RpsGameClient {
 
       const gamePda = this.gamePda(registry, nextId);
 
+      // Add a small delay to ensure unique transaction timing
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Call the create_game instruction on the smart contract
       await this.program.methods
         .createGame()
@@ -101,7 +105,7 @@ export class RpsGameClient {
           systemProgram: SystemProgram.programId,
         })
         .rpc({
-          skipPreflight: true,
+          skipPreflight: false,
           preflightCommitment: 'confirmed',
           commitment: 'confirmed',
           maxRetries: 0 // Prevent automatic retries
