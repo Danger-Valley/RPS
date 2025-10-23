@@ -70,7 +70,6 @@ export default function GamePage() {
   
   // Figure selection state
   const [myLineup, setMyLineup] = useState<Figure[]>([]);
-  const [lineupSubmitted, setLineupSubmitted] = useState(false);
   const [isSettingLineup, setIsSettingLineup] = useState(false);
 
   // Animation trigger - track which figure should animate
@@ -153,7 +152,6 @@ export default function GamePage() {
       
       await submitCustomLineup(xs, ys, pieces);
       
-      setLineupSubmitted(true);
       setIsSettingLineup(false);
       toast.success('Lineup submitted successfully!');
     } catch (err) {
@@ -197,18 +195,32 @@ export default function GamePage() {
   // Check if lineup should be set
   useEffect(() => {
     if (gameState && isAuthorized) {
+      console.log('Lineup check:', {
+        phase: gameState.phase,
+        isPlayer0,
+        isPlayer1,
+        isAuthorized,
+        myLineupLength: myLineup.length,
+        isSettingLineup
+      });
+      
       const shouldSetLineup = 
-        (gameState.phase === 4 && isPlayer0 && !lineupSubmitted) || // FlagsPlaced phase, player 0
-        (gameState.phase === 5 && isPlayer1 && !lineupSubmitted);   // LineupP0Set phase, player 1
+        (gameState.phase === 4 && isPlayer0) || // FlagsPlaced phase, player 0
+        (gameState.phase === 5 && isPlayer1) || // LineupP0Set phase, player 1
+        (gameState.phase <= 3 && (isPlayer0 || isPlayer1)); // TEMPORARY: Allow lineup setting in early phases for testing
+      
+      console.log('Should set lineup:', shouldSetLineup);
       
       if (shouldSetLineup && myLineup.length === 0) {
+        console.log('Setting lineup mode to true and generating lineup');
         setIsSettingLineup(true);
         setMyLineup(generateRandomLineup());
-      } else if (gameState.phase >= 7) { // Active phase or later
+      } else if (gameState.phase >= 6) { // LineupP1Set phase or later - lineup already submitted
+        console.log('Lineup already submitted, hiding controls');
         setIsSettingLineup(false);
       }
     }
-  }, [gameState, isAuthorized, isPlayer0, isPlayer1, lineupSubmitted, myLineup.length, generateRandomLineup]);
+  }, [gameState, isAuthorized, isPlayer0, isPlayer1, myLineup.length, generateRandomLineup, isSettingLineup]);
 
   // Update figures when game state changes
   useEffect(() => {
@@ -1077,7 +1089,7 @@ export default function GamePage() {
       </section>
 
       <aside style={{ display: 'grid', gap: 24 }}>
-        <div style={{ height: 160, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
+        <div style={{ minHeight: 160, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <strong style={{ color: '#c5c6c7' }}>Game Info</strong>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -1109,9 +1121,18 @@ export default function GamePage() {
             </div>
           </div>
           <div style={{ fontSize: 14, color: '#c5c6c7' }}>
-            <div>Phase: {gameState?.phase || 'Unknown'}</div>
+            <div>Phase: {gameState?.phase || 'Unknown'} {gameState?.phase === 4 ? '(FlagsPlaced)' : gameState?.phase === 5 ? '(LineupP0Set)' : gameState?.phase === 6 ? '(LineupP1Set)' : gameState?.phase === 7 ? '(Active)' : ''}</div>
             <div>Game ID: {gameId}</div>
             <div>Live Pieces: {gameState?.live0 || 0} vs {gameState?.live1 || 0}</div>
+            <div>Setting Lineup: {isSettingLineup ? 'Yes' : 'No'}</div>
+            <div>My Lineup: {myLineup.length} pieces</div>
+            <div style={{ marginTop: 8, color: '#66fcf1', fontWeight: 'bold' }}>Lineup Status</div>
+            <div>My lineup submitted: {gameState?.phase >= (isPlayer0 ? 5 : 6) ? 'Yes' : 'No'}</div>
+            <div>Opponent's lineup submitted: {gameState?.phase >= (isPlayer0 ? 6 : 5) ? 'Yes' : 'No'}</div>
+            <div style={{ marginTop: 8, fontSize: 12, color: '#8a9ba8' }}>
+              <div>Debug: Phase {gameState?.phase}, P0: {isPlayer0 ? 'Yes' : 'No'}, P1: {isPlayer1 ? 'Yes' : 'No'}</div>
+              <div>Should show lineup: {(gameState?.phase === 4 && isPlayer0) || (gameState?.phase === 5 && isPlayer1) ? 'Yes' : 'No'}</div>
+            </div>
           </div>
         </div>
         <div style={{ height: 260, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
