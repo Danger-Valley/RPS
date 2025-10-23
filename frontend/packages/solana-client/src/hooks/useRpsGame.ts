@@ -133,28 +133,9 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
     
     try {
       const { gameId, gamePda } = await gameClient.createGame();
-      setGameState(prev => ({
-        gameId,
-        gamePda,
-        phase: Phase.Created,
-        isP1Turn: false,
-        owners: new Array(42).fill(Owner.None),
-        pieces: new Array(42).fill(Piece.Empty),
-        live0: 0,
-        live1: 0,
-        flagPos0: 0,
-        flagPos1: 0,
-        tiePending: false,
-        tieFrom: { x: 0, y: 0 },
-        tieTo: { x: 0, y: 0 },
-        choiceMade0: false,
-        choiceMade1: false,
-        choice0: Choice.None,
-        choice1: Choice.None,
-        p0: publicKey?.toString() || '',
-        p1: '',
-        winner: null
-      }));
+      
+      // Fetch the actual game state from the smart contract
+      await loadGameState();
       
       return { gameId, gamePda: gamePda.toString() };
     } catch (err) {
