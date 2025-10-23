@@ -3,6 +3,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useRiveFile } from '@rive-app/react-canvas';
 import { useParams } from 'next/navigation';
 import RpsFigure, { Weapon, WEAPON_NAMES } from './RpsFigure';
+import WeaponSelectionPopup from './WeaponSelectionPopup';
 
 interface Figure {
   id: string;
@@ -112,6 +113,60 @@ export default function GamePage() {
   // Movement system
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
   const [availableMoves, setAvailableMoves] = useState<{row: number, col: number, direction: string}[]>([]);
+  
+  // Weapon selection popup for ties
+  const [showWeaponPopup, setShowWeaponPopup] = useState(false);
+  const [pendingAttack, setPendingAttack] = useState<{attacker: Figure, target: Figure} | null>(null);
+
+  // Handle weapon selection from popup
+  const handleWeaponSelection = (selectedWeapon: Weapon) => {
+    if (!pendingAttack) return;
+    
+    const { attacker, target } = pendingAttack;
+    
+    // Update attacker's weapon
+    setFigures(prevFigures => 
+      prevFigures.map(f => 
+        f.id === attacker.id 
+          ? { ...f, weapon: selectedWeapon }
+          : f
+      )
+    );
+    
+    // Generate random weapon for opponent
+    const opponentWeapon = (Math.floor(Math.random() * 3) + 1) as Weapon;
+    setFigures(prevFigures => 
+      prevFigures.map(f => 
+        f.id === target.id 
+          ? { ...f, weapon: opponentWeapon }
+          : f
+      )
+    );
+    
+    // Close popup and continue with attack
+    setShowWeaponPopup(false);
+    setPendingAttack(null);
+    
+    // Re-evaluate the attack with new weapons
+    const updatedAttacker = { ...attacker, weapon: selectedWeapon };
+    const updatedTarget = { ...target, weapon: opponentWeapon };
+    
+    // Check if still tied after weapon selection
+    if (selectedWeapon === opponentWeapon) {
+      // Still tied, close popup first then reopen it
+      setShowWeaponPopup(false);
+      setPendingAttack(null);
+      
+      // Use setTimeout to ensure popup closes before reopening
+      setTimeout(() => {
+        setPendingAttack({ attacker: updatedAttacker, target: updatedTarget });
+        setShowWeaponPopup(true);
+      }, 100);
+    } else {
+      // No longer tied, proceed with attack
+      proceedWithAttack(updatedAttacker, updatedTarget);
+    }
+  };
 
   const getAvailableMoves = (figure: Figure) => {
     const moves: {row: number, col: number, direction: string}[] = [];
@@ -304,15 +359,25 @@ export default function GamePage() {
         // );
     }
     
+    // Check for tie - if both weapons are the same, show weapon selection popup
+    if (attacker.weapon === target.weapon) {
+        console.log('Tie detected! Showing weapon selection popup');
+        setPendingAttack({ attacker, target });
+        setShowWeaponPopup(true);
+        return;
+    }
+    
+    // No tie, proceed with normal attack logic
+    proceedWithAttack(attacker, target);
+  };
+
+  const proceedWithAttack = (attacker: Figure, target: Figure) => {
+    console.log('Proceeding with attack:', attacker.id, 'attacks', target.id);
+    
     let winner: Figure | null = null;
     let loser: Figure | null = null;
     // stone beats scissors, scissors beat paper, paper beats stone
-    if (attacker.weapon === target.weapon) {
-        //TODO: draw
-        winner = attacker;
-        loser = target;
-    }
-    else if (attacker.weapon === Weapon.Stone && target.weapon === Weapon.Scissors) {
+    if (attacker.weapon === Weapon.Stone && target.weapon === Weapon.Scissors) {
         winner = attacker;
         loser = target;
     } else if (attacker.weapon === Weapon.Scissors && target.weapon === Weapon.Paper) {
@@ -623,6 +688,16 @@ export default function GamePage() {
           <span style={{ fontSize: 64, color: '#ffffff' }}>10</span>
         </div>
       </aside>
+      
+      {/* Weapon Selection Popup */}
+      <WeaponSelectionPopup
+        isOpen={showWeaponPopup}
+        onWeaponSelect={handleWeaponSelection}
+        onClose={() => {
+          setShowWeaponPopup(false);
+          setPendingAttack(null);
+        }}
+      />
     </main>
   );
 }
