@@ -2,6 +2,10 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useRiveFile } from '@rive-app/react-canvas';
 import { useParams } from 'next/navigation';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { toast } from 'sonner';
+import { useRpsGame } from '@rps/solana-client';
 import RpsFigure, { Weapon, WEAPON_NAMES } from './RpsFigure';
 import WeaponSelectionPopup from './WeaponSelectionPopup';
 
@@ -26,6 +30,54 @@ export default function GamePage() {
   // Load shared Rive file once and share across all figures
   const { riveFile, status: riveStatus } = useRiveFile({ src: '/figures/fig1.riv' });
   const { id } = useParams<{ id: string }>();
+  const { connected, publicKey } = useWallet();
+  const gameId = parseInt(id || '0', 10);
+  
+  // Validate game ID
+  if (isNaN(gameId) || gameId <= 0) {
+    return (
+      <main style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        fontFamily: 'system-ui, sans-serif',
+        background: 'linear-gradient(135deg, #0e1419 0%, #11171c 100%)'
+      }}>
+        <div style={{ 
+          textAlign: 'center',
+          background: '#0e1419',
+          border: '1px solid #2b3a44',
+          borderRadius: '12px',
+          padding: '48px',
+          maxWidth: '400px',
+          width: '90%'
+        }}>
+          <div style={{ fontSize: 28, color: '#ff6b6b', marginBottom: 16, fontWeight: 'bold' }}>
+            Invalid Game ID
+          </div>
+          <div style={{ color: '#c5c6c7', marginBottom: 32, fontSize: 16, lineHeight: 1.5 }}>
+            The game ID "{id}" is not valid. Please check the URL and try again.
+          </div>
+          <div style={{ color: '#8a9ba8', fontSize: 14 }}>
+            Game ID must be a positive number
+          </div>
+        </div>
+      </main>
+    );
+  }
+  
+  // Initialize smart contract integration
+  const { 
+    gameState, 
+    loading: gameLoading, 
+    error: gameError, 
+    refreshGameState,
+    isPlayer0,
+    isPlayer1,
+    isMyTurn 
+  } = useRpsGame(gameId);
+  
   const rows = 6;
   const cols = 7;
   const cells = useMemo(() => Array.from({ length: rows * cols }), []);
@@ -34,69 +86,12 @@ export default function GamePage() {
   const [windowWidth, setWindowWidth] = useState(0);
   const [boardRef, setBoardRef] = useState<HTMLDivElement | null>(null);
   
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-    
-    // Set initial width
-    handleResize();
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // Authorization and game state management
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [authorizationError, setAuthorizationError] = useState<string | null>(null);
 
-  // Initialize figures array
-  const [figures, setFigures] = useState<Figure[]>(() => {
-    const initialFigures: Figure[] = [];
-    let figureId = 0;
-    
-        // Create opponent figures (top two rows)
-        for (let row = 0; row < 2; row++) {
-          for (let col = 0; col < cols; col++) {
-            initialFigures.push({
-              id: `opponent-${figureId++}`,
-              row,
-              col,
-              weapon: 0, // Initially no weapon visible
-              isMyFigure: false,
-              isAlive: true
-            });
-          }
-        }
-    
-    // Create my figures (bottom two rows)
-    for (let row = 4; row < 6; row++) {
-      for (let col = 0; col < cols; col++) {
-        initialFigures.push({
-          id: `my-${figureId++}`,
-          row,
-          col,
-          weapon: (1 +(row + col) % 3) as Weapon,
-          isMyFigure: true,
-          isAlive: true
-        });
-      }
-    }
-    
-    return initialFigures;
-  });
-
-  // Calculate responsive cell dimensions for positioning
-  // Use actual board dimensions if available, otherwise fallback to calculated values
-  const actualBoardWidth = boardRef?.clientWidth || (windowWidth > 0 ? Math.min(840, windowWidth * 0.9) : 840);
-  const actualBoardHeight = boardRef?.clientHeight || (actualBoardWidth * rows) / cols;
-  const actualCellWidth = actualBoardWidth / cols;
-  const actualCellHeight = actualBoardHeight / rows;
-  
-  // Calculate responsive figure size based on actual cell dimensions
-//   console.log('actualCellWidth:', actualCellWidth, 'actualCellHeight:', actualCellHeight);
-  const cellSize = Math.min(actualCellWidth, actualCellHeight);
-  
-  // Use a hybrid approach: minimum size for small fields, scaled size for large fields
-  const figureSize = cellSize * 1.5;
-  const figureScale = 1.0;
-//   console.log('figureSize:', figureSize, 'figureScale:', figureScale, 'cellSize:', cellSize);
+  // Initialize figures array from smart contract data
+  const [figures, setFigures] = useState<Figure[]>([]);
 
   // Animation trigger - track which figure should animate
   const [animatingFigure, setAnimatingFigure] = useState<string | null>(null);
@@ -117,6 +112,214 @@ export default function GamePage() {
   // Weapon selection popup for ties
   const [showWeaponPopup, setShowWeaponPopup] = useState(false);
   const [pendingAttack, setPendingAttack] = useState<{attacker: Figure, target: Figure} | null>(null);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    // Set initial width
+    handleResize();
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Update figures when game state changes
+  useEffect(() => {
+    if (gameState && isAuthorized) {
+      const newFigures: Figure[] = [];
+      let figureId = 0;
+      
+      // Convert smart contract data to figures
+      for (let i = 0; i < 42; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const owner = gameState.owners[i];
+        const piece = gameState.pieces[i];
+        
+        // Determine if this is the user's figure
+        const isMyFigure = (isPlayer0 && owner === 0) || (isPlayer1 && owner === 1);
+        
+        // Only create figure if it's owned by someone
+        if (owner !== 0) { // 0 = None in Owner enum
+          newFigures.push({
+            id: `figure-${figureId++}`,
+            row,
+            col,
+            weapon: piece as Weapon, // Convert Piece enum to Weapon
+            isMyFigure,
+            isAlive: true
+          });
+        }
+      }
+      
+      setFigures(newFigures);
+    }
+  }, [gameState, isAuthorized, isPlayer0, isPlayer1]);
+
+  // Check authorization when game state loads
+  useEffect(() => {
+    if (gameState && publicKey) {
+      console.log('Game state data:', {
+        p0: gameState.p0,
+        p1: gameState.p1,
+        p0Type: typeof gameState.p0,
+        p1Type: typeof gameState.p1,
+        userAddress: publicKey.toString()
+      });
+      
+      const userAddress = publicKey.toString();
+      const isPlayer0 = String(gameState.p0) === userAddress;
+      const isPlayer1 = String(gameState.p1) === userAddress;
+      
+      if (isPlayer0 || isPlayer1) {
+        setIsAuthorized(true);
+        setAuthorizationError(null);
+        toast.success(`Welcome! You are ${isPlayer0 ? 'Player 0' : 'Player 1'}`);
+      } else {
+        setIsAuthorized(false);
+        setAuthorizationError('You are not authorized to play this game. Only the game players can access it.');
+        toast.error('Not authorized to play this game');
+      }
+    }
+  }, [gameState, publicKey]);
+
+  // Show loading state
+  if (gameLoading) {
+    return (
+      <main style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        fontFamily: 'system-ui, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 24, color: '#66fcf1', marginBottom: 16 }}>Loading game...</div>
+          <div style={{ color: '#c5c6c7' }}>Fetching game state from blockchain</div>
+        </div>
+      </main>
+    );
+  }
+
+  // Show error state
+  if (gameError) {
+    return (
+      <main style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        fontFamily: 'system-ui, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 24, color: '#ff6b6b', marginBottom: 16 }}>Error loading game</div>
+          <div style={{ color: '#c5c6c7', marginBottom: 16 }}>{gameError}</div>
+          <button 
+            onClick={refreshGameState}
+            style={{
+              background: '#66fcf1',
+              color: '#0e1419',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: 16
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // Show authorization error
+  if (authorizationError) {
+    return (
+      <main style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        fontFamily: 'system-ui, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 24, color: '#ff6b6b', marginBottom: 16 }}>Access Denied</div>
+          <div style={{ color: '#c5c6c7', marginBottom: 16 }}>{authorizationError}</div>
+          <div style={{ color: '#c5c6c7', fontSize: 14 }}>
+            Game Players: {gameState?.p0 ? `${String(gameState.p0).slice(0, 8)}...` : 'Unknown'} and {gameState?.p1 ? `${String(gameState.p1).slice(0, 8)}...` : 'Unknown'}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Show wallet connection prompt
+  if (!connected) {
+    return (
+      <main style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        fontFamily: 'system-ui, sans-serif',
+        background: 'linear-gradient(135deg, #0e1419 0%, #11171c 100%)'
+      }}>
+        <div style={{ 
+          textAlign: 'center',
+          background: '#0e1419',
+          border: '1px solid #2b3a44',
+          borderRadius: '12px',
+          padding: '48px',
+          maxWidth: '400px',
+          width: '90%'
+        }}>
+          <div style={{ fontSize: 28, color: '#66fcf1', marginBottom: 16, fontWeight: 'bold' }}>
+            Connect Wallet
+          </div>
+          <div style={{ color: '#c5c6c7', marginBottom: 32, fontSize: 16, lineHeight: 1.5 }}>
+            Please connect your wallet to access this game
+          </div>
+          <div style={{ marginBottom: 24 }}>
+            <WalletMultiButton 
+              style={{
+                background: '#66fcf1',
+                color: '#0e1419',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '12px 24px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            />
+          </div>
+          <div style={{ color: '#8a9ba8', fontSize: 14 }}>
+            Game ID: {gameId}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Calculate responsive cell dimensions for positioning
+  // Use actual board dimensions if available, otherwise fallback to calculated values
+  const actualBoardWidth = boardRef?.clientWidth || (windowWidth > 0 ? Math.min(840, windowWidth * 0.9) : 840);
+  const actualBoardHeight = boardRef?.clientHeight || (actualBoardWidth * rows) / cols;
+  const actualCellWidth = actualBoardWidth / cols;
+  const actualCellHeight = actualBoardHeight / rows;
+  
+  // Calculate responsive figure size based on actual cell dimensions
+//   console.log('actualCellWidth:', actualCellWidth, 'actualCellHeight:', actualCellHeight);
+  const cellSize = Math.min(actualCellWidth, actualCellHeight);
+  
+  // Use a hybrid approach: minimum size for small fields, scaled size for large fields
+  const figureSize = cellSize * 1.5;
+  const figureScale = 1.0;
+//   console.log('figureSize:', figureSize, 'figureScale:', figureScale, 'cellSize:', cellSize);
 
   // Handle weapon selection from popup
   const handleWeaponSelection = (selectedWeapon: Weapon) => {
@@ -679,13 +882,59 @@ export default function GamePage() {
 
       <aside style={{ display: 'grid', gap: 24 }}>
         <div style={{ height: 160, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
-          <strong style={{ color: '#c5c6c7' }}>Logo</strong>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <strong style={{ color: '#c5c6c7' }}>Game Info</strong>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button 
+                onClick={refreshGameState}
+                style={{
+                  background: '#66fcf1',
+                  color: '#0e1419',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: 12
+                }}
+              >
+                Refresh
+              </button>
+              <WalletMultiButton 
+                style={{
+                  background: '#2b3a44',
+                  color: '#c5c6c7',
+                  border: '1px solid #2b3a44',
+                  borderRadius: '4px',
+                  padding: '6px 12px',
+                  fontSize: 12,
+                  cursor: 'pointer'
+                }}
+              />
+            </div>
+          </div>
+          <div style={{ fontSize: 14, color: '#c5c6c7' }}>
+            <div>Phase: {gameState?.phase || 'Unknown'}</div>
+            <div>Game ID: {gameId}</div>
+            <div>Live Pieces: {gameState?.live0 || 0} vs {gameState?.live1 || 0}</div>
+          </div>
         </div>
         <div style={{ height: 260, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
-          <strong style={{ color: '#c5c6c7' }}>Turn / Side</strong>
+          <strong style={{ color: '#c5c6c7' }}>Player Info</strong>
+          <div style={{ marginTop: 8, fontSize: 14, color: '#c5c6c7' }}>
+            <div>You are: {isPlayer0 ? 'Player 0' : isPlayer1 ? 'Player 1' : 'Unknown'}</div>
+            <div>Your turn: {isMyTurn ? 'Yes' : 'No'}</div>
+            <div style={{ marginTop: 8 }}>
+              <div>Player 0: {gameState?.p0 ? `${String(gameState.p0).slice(0, 8)}...` : 'Unknown'}</div>
+              <div>Player 1: {gameState?.p1 ? `${String(gameState.p1).slice(0, 8)}...` : 'Unknown'}</div>
+            </div>
+          </div>
         </div>
         <div style={{ height: 200, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: 64, color: '#ffffff' }}>10</span>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 24, color: '#66fcf1' }}>{gameState?.live0 || 0}</div>
+            <div style={{ fontSize: 14, color: '#c5c6c7' }}>vs</div>
+            <div style={{ fontSize: 24, color: '#66fcf1' }}>{gameState?.live1 || 0}</div>
+          </div>
         </div>
       </aside>
       

@@ -3,6 +3,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { AnchorProvider } from '@coral-xyz/anchor';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { RpsGameClient, Phase, Choice, Piece, Owner } from '../index';
+import idl from '../idl/idl.json';
 
 export interface GameState {
   gameId: number;
@@ -71,10 +72,9 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
           { commitment: 'confirmed' }
         );
         
-        // Import the real IDL from the smart contract
-        const idl = require('../idl/idl.json');
+        // Use the imported IDL
         
-        const client = new RpsGameClient(provider, idl);
+        const client = new RpsGameClient(provider, idl as any);
         setGameClient(client);
         setError(null);
       } catch (err) {
