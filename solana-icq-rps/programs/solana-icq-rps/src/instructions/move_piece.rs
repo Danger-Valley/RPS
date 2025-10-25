@@ -49,12 +49,7 @@ pub fn move_piece_xy(
 
 // ---------------- core logic ----------------
 
-fn do_move_piece(
-    g: &mut Game,
-    signer: &Signer,
-    from_idx: u8,
-    to_idx: u8,
-) -> Result<()> {
+fn do_move_piece(g: &mut Game, signer: &Signer, from_idx: u8, to_idx: u8) -> Result<()> {
     let me = signer.key();
 
     require!(g.phase() == Phase::Active, ErrorCode::GameNotActive);
@@ -106,7 +101,12 @@ fn do_move_piece(
             }
         }
 
-        emit!(MoveMade { id: g.id, player: me, from_idx, to_idx });
+        emit!(MoveMade {
+            id: g.id,
+            player: me,
+            from_idx,
+            to_idx
+        });
         return end_turn_or_win(g, !g.is_player1_turn);
     }
 
@@ -135,7 +135,11 @@ fn do_move_piece(
 
         return finish(
             g,
-            if me_owner == BoardCellOwner::P0 { g.player0 } else { g.player1 },
+            if me_owner == BoardCellOwner::P0 {
+                g.player0
+            } else {
+                g.player1
+            },
             "captured_flag",
         );
     }
@@ -148,7 +152,11 @@ fn do_move_piece(
         g.tie_to = to_idx;
         g.choice_made0 = false;
         g.choice_made1 = false;
-        emit!(TieStarted { id: g.id, from_idx, to_idx });
+        emit!(TieStarted {
+            id: g.id,
+            from_idx,
+            to_idx
+        });
         return Ok(());
     }
 
@@ -194,7 +202,12 @@ fn do_move_piece(
         }
     }
 
-    emit!(MoveMade { id: g.id, player: me, from_idx, to_idx });
+    emit!(MoveMade {
+        id: g.id,
+        player: me,
+        from_idx,
+        to_idx
+    });
     end_turn_or_win(g, !g.is_player1_turn)
 }
 

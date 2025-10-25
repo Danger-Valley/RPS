@@ -25,14 +25,6 @@ pub mod solana_icq_rps {
         Ok(())
     }
 
-    pub fn place_flag(ctx: Context<PlaceFlag>, flag_idx: u8) -> Result<()> {
-        place_flag::place_flag(ctx, flag_idx)
-    }
-
-    pub fn place_flag_xy(ctx: Context<PlaceFlagXy>, x: u8, y: u8) -> Result<()> {
-        place_flag::place_flag_xy(ctx, x, y)
-    }
-
     pub fn submit_lineup(
         ctx: Context<SubmitLineup>,
         positions: Vec<u8>,

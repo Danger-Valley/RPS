@@ -6,15 +6,43 @@ export const spawnCells = (isP0: boolean) => {
   const cells: number[] = [];
   for (let y = 0; y < HEIGHT; y++)
     for (let x = 0; x < WIDTH; x++) {
-      if (isP0 ? y >= 4 : y <= 1) cells.push(toIdx(x, y));
+      if (isP0 ? y >= 4 : y <= 1) {
+        cells.push(toIdx(x, y));
+      }
     }
   return cells;
 };
 
-export const padPieces = (base: number[], len: number) => {
-  const out = base.slice();
-  while (out.length < len) out.push((out.length % 3) + 1); // 1,2,3 = R,P,S
+export const padPiecesRPS = (len: number) => {
+  const out: number[] = [];
+  for (let k = 0; k < len; k++) {
+    out.push((k % 3) + 1); // 1=Rock,2=Paper,3=Scissors
+  }
   return out;
+};
+
+export const buildFullLineupWithFlag = (
+  isP0: boolean,
+  flagIdx: number,
+): { xs: number[]; ys: number[]; pcs: number[] } => {
+  const baseCells = spawnCells(isP0);
+
+  const otherCells = baseCells.filter((c) => c !== flagIdx);
+
+  const otherPieces = padPiecesRPS(otherCells.length);
+
+  const allCells = [flagIdx, ...otherCells];
+  const allPieces = [Piece.Flag, ...otherPieces];
+
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const idx of allCells) {
+    const { x, y } = toXY(idx);
+    xs.push(x);
+    ys.push(y);
+  }
+
+  return { xs, ys, pcs: allPieces };
 };
 
 export const u8 = (arr: number[]) => Buffer.from(Uint8Array.from(arr));

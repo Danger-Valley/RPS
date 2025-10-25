@@ -49,17 +49,6 @@ export const setupGame = async (): Promise<GameSetupReturn> => {
     .signers([p1])
     .rpc();
 
-  // flags
-  await program.methods
-    .placeFlag(toIdx(3, 5))
-    .accountsStrict({ game, registry: reg, signer: p0 })
-    .rpc();
-  await program.methods
-    .placeFlag(toIdx(3, 0))
-    .accountsStrict({ game, registry: reg, signer: p1.publicKey })
-    .signers([p1])
-    .rpc();
-
   const g = await program.account.game.fetch(game);
   const dec = decodeGame(g);
   printBoard(dec.owners, dec.pieces);

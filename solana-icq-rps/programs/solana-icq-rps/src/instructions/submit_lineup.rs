@@ -62,7 +62,11 @@ pub fn submit_lineup_xy(
 
 fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u8]) -> Result<()> {
     match g.phase() {
-        Phase::FlagsPlaced | Phase::LineupP0Set | Phase::LineupP1Set => {}
+        Phase::Created
+        | Phase::Joined
+        | Phase::FlagsPlaced
+        | Phase::LineupP0Set
+        | Phase::LineupP1Set => {}
         _ => return err!(ErrorCode::BadPhase),
     }
     require!(
@@ -75,6 +79,19 @@ fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u
     let is_p0 = s == g.player0;
     let is_p1 = s == g.player1;
     require!(is_p0 || is_p1, ErrorCode::NotParticipant);
+
+    let mut flag_count = 0usize;
+    let mut flag_idx: u8 = 0;
+
+    for (i, &idx) in positions.iter().enumerate() {
+        let p = Piece::from(pieces[i]);
+        if p == Piece::Flag {
+            flag_count += 1;
+            flag_idx = idx;
+        }
+    }
+
+    require!(flag_count == 1, ErrorCode::MustHaveExactlyOneFlag);
 
     for (i, &idx) in positions.iter().enumerate() {
         validate_cell(idx)?;
@@ -92,7 +109,7 @@ fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u
 
         let p = Piece::from(pieces[i]);
         require!(
-            matches!(p, Piece::Rock | Piece::Paper | Piece::Scissors),
+            matches!(p, Piece::Rock | Piece::Paper | Piece::Scissors | Piece::Flag),
             ErrorCode::OnlyRpsAllowed
         );
 
@@ -106,6 +123,14 @@ fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u
             g.live_player0 = g.live_player0.saturating_add(1);
         } else {
             g.live_player1 = g.live_player1.saturating_add(1);
+        }
+
+        if p == Piece::Flag {
+            if is_p0 {
+                g.flag_pos0 = idx;
+            } else {
+                g.flag_pos1 = idx;
+            }
         }
     }
 

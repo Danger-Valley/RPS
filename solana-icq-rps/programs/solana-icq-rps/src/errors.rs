@@ -52,4 +52,6 @@ pub enum ErrorCode {
     AlreadyChose,
     #[msg("Overflow")]
     Overflow,
+    #[msg("You must include exactly one Flag in your lineup")]
+    MustHaveExactlyOneFlag
 }

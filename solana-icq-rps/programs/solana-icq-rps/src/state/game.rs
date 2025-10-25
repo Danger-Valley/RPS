@@ -47,8 +47,7 @@ impl Game {
     }
 
     pub const SIZE_PLAIN: usize =
-        4 + 32 + 32 + 32 + 1 + 1 + CELLS + CELLS + 2 + 2 +
-            1 + 1 + 1 + 1 + 1 + 1 + 1 + 1;
+        4 + 32 + 32 + 32 + 1 + 1 + CELLS + CELLS + 2 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1;
     pub const SIZE: usize = 8 + Self::SIZE_PLAIN + 16;
 }
 

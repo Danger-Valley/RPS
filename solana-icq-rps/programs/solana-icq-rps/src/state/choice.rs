@@ -21,7 +21,9 @@ impl From<u8> for Choice {
 
 pub fn rps_choice(a: Choice, b: Choice) -> i8 {
     use Choice::*;
-    if a as u8 == b as u8 { return 0; }
+    if a as u8 == b as u8 {
+        return 0;
+    }
     match (a, b) {
         (Rock, Scissors) => 1,
         (Scissors, Paper) => 1,
