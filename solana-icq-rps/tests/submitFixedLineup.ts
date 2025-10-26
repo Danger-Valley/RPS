@@ -11,19 +11,6 @@ export const submitFixedLineup = async (): Promise<GameSetupReturn> => {
   const { program, p0, p1, game, reg } = await setupGame();
   console.log('setup done');
 
-  // lineup p0
-  const p0FlagIdx = toIdx(3, 5);
-  const {
-    xs: xs0,
-    ys: ys0,
-    pcs: pcs0,
-  } = buildFullLineupWithFlag(/* isP0 */ true, p0FlagIdx);
-
-  await program.methods
-    .submitLineupXy(u8(xs0), u8(ys0), u8(pcs0))
-    .accountsStrict({ inner: { game, registry: reg, signer: p0 } })
-    .rpc();
-
   // lineup p1
   const p1FlagIdx = toIdx(3, 0);
   const {

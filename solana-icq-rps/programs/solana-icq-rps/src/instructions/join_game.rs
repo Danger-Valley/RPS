@@ -16,15 +16,22 @@ pub fn join_game(ctx: Context<JoinGame>) -> Result<()> {
     let game = &mut ctx.accounts.game;
     let joiner = ctx.accounts.joiner.key();
 
-    require!(game.phase() == Phase::Created, ErrorCode::BadPhase);
     require!(game.player0 != joiner, ErrorCode::NotAllowedJoinGame);
     require!(
         game.player1 == Pubkey::default(),
         ErrorCode::NotAllowedJoinGame
     );
 
+    match game.phase() {
+        Phase::Created | Phase::LineupP0Set => {}
+        _ => return err!(ErrorCode::BadPhase),
+    }
+
     game.player1 = joiner;
-    game.phase = Phase::Joined as u8;
+
+    if game.phase() == Phase::Created {
+        game.phase = Phase::Joined as u8;
+    }
 
     emit!(GameJoined {
         game_id: game.id,

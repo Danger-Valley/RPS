@@ -3,7 +3,13 @@ import { Program } from '@coral-xyz/anchor';
 import { Keypair } from '@solana/web3.js';
 import { SolanaIcqRps } from '../target/types/solana_icq_rps';
 import { airdropIfNeeded, gamePda, registryPda } from './pdas';
-import { decodeGame, printBoard, toIdx } from './cells';
+import {
+  buildFullLineupWithFlag,
+  decodeGame,
+  printBoard,
+  toIdx,
+  u8,
+} from './cells';
 
 export interface GameSetupReturn {
   program: anchor.Program<any>;
@@ -33,7 +39,7 @@ export const setupGame = async (): Promise<GameSetupReturn> => {
 
   const game = gamePda(program.programId, reg, nextId);
 
-  // create + join
+  // create
   await program.methods
     .createGame()
     .accountsStrict({
@@ -43,6 +49,21 @@ export const setupGame = async (): Promise<GameSetupReturn> => {
       systemProgram: anchor.web3.SystemProgram.programId,
     })
     .rpc();
+
+  // lineup p0
+  const p0FlagIdx = toIdx(3, 5);
+  const {
+    xs: xs0,
+    ys: ys0,
+    pcs: pcs0,
+  } = buildFullLineupWithFlag(/* isP0 */ true, p0FlagIdx);
+
+  await program.methods
+    .submitLineupXy(u8(xs0), u8(ys0), u8(pcs0))
+    .accountsStrict({ inner: { game, registry: reg, signer: p0 } })
+    .rpc();
+
+  // join
   await program.methods
     .joinGame()
     .accountsStrict({ game, registry: reg, joiner: p1.publicKey })
