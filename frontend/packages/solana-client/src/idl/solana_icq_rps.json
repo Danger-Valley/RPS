@@ -378,157 +378,6 @@
       ]
     },
     {
-      "name": "place_flag",
-      "discriminator": [
-        26,
-        28,
-        210,
-        185,
-        124,
-        181,
-        107,
-        100
-      ],
-      "accounts": [
-        {
-          "name": "game",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  103,
-                  97,
-                  109,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "registry"
-              },
-              {
-                "kind": "account",
-                "path": "game.id",
-                "account": "Game"
-              }
-            ]
-          }
-        },
-        {
-          "name": "registry",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "signer",
-          "signer": true
-        }
-      ],
-      "args": [
-        {
-          "name": "flag_idx",
-          "type": "u8"
-        }
-      ]
-    },
-    {
-      "name": "place_flag_xy",
-      "discriminator": [
-        137,
-        10,
-        199,
-        122,
-        12,
-        112,
-        26,
-        51
-      ],
-      "accounts": [
-        {
-          "name": "inner",
-          "accounts": [
-            {
-              "name": "game",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      103,
-                      97,
-                      109,
-                      101
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "registry"
-                  },
-                  {
-                    "kind": "account",
-                    "path": "game.id",
-                    "account": "Game"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "registry",
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      114,
-                      101,
-                      103,
-                      105,
-                      115,
-                      116,
-                      114,
-                      121
-                    ]
-                  }
-                ]
-              }
-            },
-            {
-              "name": "signer",
-              "signer": true
-            }
-          ]
-        }
-      ],
-      "args": [
-        {
-          "name": "x",
-          "type": "u8"
-        },
-        {
-          "name": "y",
-          "type": "u8"
-        }
-      ]
-    },
-    {
       "name": "submit_lineup",
       "discriminator": [
         199,
@@ -986,6 +835,11 @@
       "code": 6024,
       "name": "Overflow",
       "msg": "Overflow"
+    },
+    {
+      "code": 6025,
+      "name": "MustHaveExactlyOneFlag",
+      "msg": "You must include exactly one Flag in your lineup"
     }
   ],
   "types": [
