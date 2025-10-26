@@ -33,6 +33,8 @@ pub struct Game {
     pub choice_made1: bool,
     pub choice0: u8,
     pub choice1: u8,
+
+    pub nonce: [u8; 32],
 }
 
 impl Game {
@@ -40,7 +42,7 @@ impl Game {
         Phase::from(self.phase)
     }
 
-    pub const SIZE_PLAIN: usize = 196;
+    pub const SIZE_PLAIN: usize = 196 + 32;
     
     pub const SIZE: usize = 8 + Self::SIZE_PLAIN;
 }

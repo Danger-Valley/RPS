@@ -15,8 +15,8 @@ declare_id!("3ueExHyxLr7ahqcBEzse3L21rTaWQ91rLtVnZLsx4ngA");
 pub mod solana_icq_rps {
     use super::*;
 
-    pub fn create_game(ctx: Context<CreateGame>) -> Result<()> {
-        create_game::create_game(ctx)?;
+    pub fn create_game(ctx: Context<CreateGame>, nonce: [u8; 32]) -> Result<()> {
+        create_game::create_game(ctx, nonce)?;
         Ok(())
     }
 

@@ -3,10 +3,11 @@ use anchor_lang::prelude::*;
 use crate::{clear_board, errors::ErrorCode, events::GameCreated, Game, Phase};
 
 #[derive(Accounts)]
+#[instruction(nonce: [u8; 32])]
 pub struct CreateGame<'info> {
     #[account(
         init,
-        seeds = [b"game", payer.key().as_ref()],
+        seeds = [b"game", payer.key().as_ref(), &nonce],
         bump,
         payer = payer,
         space = Game::SIZE,
@@ -18,7 +19,7 @@ pub struct CreateGame<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn create_game(ctx: Context<CreateGame>) -> Result<()> {
+pub fn create_game(ctx: Context<CreateGame>, nonce: [u8; 32]) -> Result<()> {
     let game = &mut ctx.accounts.game;
     let payer = &ctx.accounts.payer;
 
@@ -29,6 +30,8 @@ pub fn create_game(ctx: Context<CreateGame>) -> Result<()> {
     game.is_player1_turn = false;
 
     clear_board(game);
+
+    game.nonce = nonce;
 
     emit!(GameCreated {
         creator: payer.key()
