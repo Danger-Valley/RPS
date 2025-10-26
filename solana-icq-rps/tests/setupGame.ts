@@ -2,7 +2,7 @@ import * as anchor from '@coral-xyz/anchor';
 import { Program } from '@coral-xyz/anchor';
 import { Keypair } from '@solana/web3.js';
 import { SolanaIcqRps } from '../target/types/solana_icq_rps';
-import { airdropIfNeeded, gamePda, registryPda } from './pdas';
+import { airdropIfNeeded } from './pdas';
 import {
   buildFullLineupWithFlag,
   decodeGame,
@@ -16,7 +16,6 @@ export interface GameSetupReturn {
   p0: anchor.web3.PublicKey;
   p1: anchor.web3.Keypair;
   game: anchor.web3.PublicKey;
-  reg: anchor.web3.PublicKey;
 }
 
 export const setupGame = async (): Promise<GameSetupReturn> => {
@@ -30,20 +29,15 @@ export const setupGame = async (): Promise<GameSetupReturn> => {
   await airdropIfNeeded(conn, p0);
   await airdropIfNeeded(conn, p1.publicKey);
 
-  const reg = registryPda(program.programId);
-  let nextId = 0;
-  try {
-    const r: any = await program.account.registry.fetch(reg);
-    nextId = Number(r.nextGameId);
-  } catch {}
-
-  const game = gamePda(program.programId, reg, nextId);
+  const [game] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from('game'), p0.toBuffer()],
+    program.programId,
+  );
 
   // create
   await program.methods
     .createGame()
     .accountsStrict({
-      registry: reg,
       game,
       payer: p0,
       systemProgram: anchor.web3.SystemProgram.programId,
@@ -60,13 +54,13 @@ export const setupGame = async (): Promise<GameSetupReturn> => {
 
   await program.methods
     .submitLineupXy(u8(xs0), u8(ys0), u8(pcs0))
-    .accountsStrict({ inner: { game, registry: reg, signer: p0 } })
+    .accountsStrict({ inner: { game, signer: p0 } })
     .rpc();
 
   // join
   await program.methods
     .joinGame()
-    .accountsStrict({ game, registry: reg, joiner: p1.publicKey })
+    .accountsStrict({ game, joiner: p1.publicKey })
     .signers([p1])
     .rpc();
 
@@ -74,5 +68,5 @@ export const setupGame = async (): Promise<GameSetupReturn> => {
   const dec = decodeGame(g);
   printBoard(dec.owners, dec.pieces);
 
-  return { program, p0, p1, game, reg };
+  return { program, p0, p1, game };
 };

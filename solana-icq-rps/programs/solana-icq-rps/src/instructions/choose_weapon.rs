@@ -6,15 +6,8 @@ use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct ChooseWeapon<'info> {
-    #[account(
-        mut,
-        seeds = [b"game", registry.key().as_ref(), &game.id.to_le_bytes()],
-        bump
-    )]
+    #[account(mut)]
     pub game: Account<'info, Game>,
-    /// CHECK: seed-only
-    #[account(seeds=[b"registry"], bump)]
-    pub registry: UncheckedAccount<'info>,
     pub signer: Signer<'info>,
 }
 
@@ -37,7 +30,6 @@ pub fn choose_weapon(ctx: Context<ChooseWeapon>, choice: u8) -> Result<()> {
         return err!(ErrorCode::NotParticipant);
     }
     emit!(TieChoice {
-        id: g.id,
         player: me,
         choice: Choice::from(choice)
     });
@@ -67,7 +59,6 @@ pub fn choose_weapon(ctx: Context<ChooseWeapon>, choice: u8) -> Result<()> {
     let outcome = rps_choice(p0_choice, p1_choice);
 
     emit!(TieResolved {
-        id: g.id,
         outcome,
         p0_choice,
         p1_choice

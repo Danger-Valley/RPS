@@ -53,5 +53,5 @@ pub enum ErrorCode {
     #[msg("Overflow")]
     Overflow,
     #[msg("You must include exactly one Flag in your lineup")]
-    MustHaveExactlyOneFlag
+    MustHaveExactlyOneFlag,
 }
