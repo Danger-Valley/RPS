@@ -30,11 +30,11 @@ export default function HomePage() {
     toast.loading('Creating game...', { id: 'create-game' });
 
     try {
-      const { gameId } = await createGame();
-      toast.success(`Game created! ID: ${gameId}`, { id: 'create-game' });
+      const { gamePda } = await createGame();
+      toast.success(`Game created! PDA: ${gamePda}`, { id: 'create-game' });
       
       // Navigate to the game page
-      router.push(`/game/${gameId}`);
+      router.push(`/game/${gamePda}`);
     } catch (err) {
       console.error('Failed to create game:', err);
       toast.error(`Failed to create game: ${err}`, { id: 'create-game' });
@@ -53,11 +53,11 @@ export default function HomePage() {
     toast.loading('Creating private game...', { id: 'create-private-game' });
 
     try {
-      const { gameId } = await createGame();
-      toast.success(`Private game created! ID: ${gameId}`, { id: 'create-private-game' });
+      const { gamePda } = await createGame();
+      toast.success(`Private game created! PDA: ${gamePda}`, { id: 'create-private-game' });
       
       // Navigate to the game page
-      router.push(`/game/${gameId}`);
+      router.push(`/game/${gamePda}`);
     } catch (err) {
       console.error('Failed to create private game:', err);
       toast.error(`Failed to create private game: ${err}`, { id: 'create-private-game' });

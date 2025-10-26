@@ -31,7 +31,7 @@ export default function GamePage() {
   const { riveFile, status: riveStatus } = useRiveFile({ src: '/figures/fig1.riv' });
   const { id } = useParams<{ id: string }>();
   const { connected, publicKey } = useWallet();
-  const gameId = parseInt(id || '0', 10);
+  const gamePda = id || '';
   
   // Initialize smart contract integration
   const { 
@@ -44,7 +44,7 @@ export default function GamePage() {
     isPlayer0,
     isPlayer1,
     isMyTurn 
-  } = useRpsGame(gameId);
+  } = useRpsGame(gamePda);
   
   const rows = 6;
   const cols = 7;
@@ -168,7 +168,7 @@ export default function GamePage() {
     toast.loading('Joining game...', { id: 'join-game' });
     
     try {
-      await joinGame(gameId);
+      await joinGame(gamePda);
       toast.success('Successfully joined the game!', { id: 'join-game' });
       // The useEffect will handle updating the authorization state
     } catch (err) {
@@ -177,7 +177,7 @@ export default function GamePage() {
     } finally {
       setIsJoiningGame(false);
     }
-  }, [joinGame, isJoiningGame, gameId]);
+  }, [joinGame, isJoiningGame, gamePda]);
 
   // All useEffect hooks
   useEffect(() => {
@@ -302,7 +302,7 @@ export default function GamePage() {
   }, [gameState, publicKey]);
 
   // Validate game ID
-  if (isNaN(gameId) || gameId <= 0) {
+  if (!gamePda) {
     return (
       <main style={{ 
         display: 'flex', 
@@ -406,7 +406,7 @@ export default function GamePage() {
           width: '90%'
         }}>
           <div style={{ fontSize: 28, color: '#66fcf1', marginBottom: 16, fontWeight: 'bold' }}>
-            Join Game #{gameId}
+            Join Game {gamePda.slice(0, 8)}...
           </div>
           <div style={{ color: '#c5c6c7', marginBottom: 24, fontSize: 16, lineHeight: 1.5 }}>
             This game is waiting for a second player. Would you like to join?
@@ -511,7 +511,7 @@ export default function GamePage() {
             />
           </div>
           <div style={{ color: '#8a9ba8', fontSize: 14 }}>
-            Game ID: {gameId}
+            Game PDA: {gamePda.slice(0, 8)}...
           </div>
         </div>
       </main>
@@ -1137,13 +1137,13 @@ export default function GamePage() {
               gameState?.phase === 7 ? '(Active)' :
               gameState?.phase === 8 ? '(Finished)' : ''
             }</div>
-            <div>Game ID: {gameId}</div>
+            <div>Game PDA: {gamePda.slice(0, 8)}...</div>
             <div>Live Pieces: {gameState?.live0 || 0} vs {gameState?.live1 || 0}</div>
             <div>Setting Lineup: {isSettingLineup ? 'Yes' : 'No'}</div>
             <div>My Lineup: {myLineup.length} pieces</div>
             <div style={{ marginTop: 8, color: '#66fcf1', fontWeight: 'bold' }}>Lineup Status</div>
-            <div>My lineup submitted: {gameState?.phase >= (isPlayer0 ? 5 : 6) ? 'Yes' : 'No'}</div>
-            <div>Opponent's lineup submitted: {gameState?.phase >= (isPlayer0 ? 6 : 5) ? 'Yes' : 'No'}</div>
+            <div>My lineup submitted: {gameState?.phase && gameState.phase >= (isPlayer0 ? 5 : 6) ? 'Yes' : 'No'}</div>
+            <div>Opponent's lineup submitted: {gameState?.phase && gameState.phase >= (isPlayer0 ? 6 : 5) ? 'Yes' : 'No'}</div>
             <div style={{ marginTop: 8, fontSize: 12, color: '#8a9ba8' }}>
               <div>Debug: Phase {gameState?.phase}, P0: {isPlayer0 ? 'Yes' : 'No'}, P1: {isPlayer1 ? 'Yes' : 'No'}</div>
               <div>Should show lineup: {

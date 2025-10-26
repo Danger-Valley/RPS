@@ -1,5 +1,5 @@
 {
-  "address": "EGayg9wGidJLkmUF98VNv167EBqyZ59TuXVAxjEopGGE",
+  "address": "EtVowPYxob9DUnWURwMFbeVBsECBywunU5iumgqB8JPK",
   "metadata": {
     "name": "solana_icq_rps",
     "version": "0.1.0",
@@ -22,49 +22,7 @@
       "accounts": [
         {
           "name": "game",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  103,
-                  97,
-                  109,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "registry"
-              },
-              {
-                "kind": "account",
-                "path": "game.id",
-                "account": "Game"
-              }
-            ]
-          }
-        },
-        {
-          "name": "registry",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "signer",
@@ -92,27 +50,6 @@
       ],
       "accounts": [
         {
-          "name": "registry",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "game",
           "writable": true,
           "pda": {
@@ -128,12 +65,7 @@
               },
               {
                 "kind": "account",
-                "path": "registry"
-              },
-              {
-                "kind": "account",
-                "path": "registry.next_game_id",
-                "account": "Registry"
+                "path": "payer"
               }
             ]
           }
@@ -165,52 +97,7 @@
       "accounts": [
         {
           "name": "game",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  103,
-                  97,
-                  109,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "registry"
-              },
-              {
-                "kind": "account",
-                "path": "game.id",
-                "account": "Game"
-              }
-            ]
-          }
-        },
-        {
-          "name": "registry",
-          "docs": [
-            "CHECK"
-          ],
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "joiner",
@@ -234,49 +121,7 @@
       "accounts": [
         {
           "name": "game",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  103,
-                  97,
-                  109,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "registry"
-              },
-              {
-                "kind": "account",
-                "path": "game.id",
-                "account": "Game"
-              }
-            ]
-          }
-        },
-        {
-          "name": "registry",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "signer",
@@ -309,49 +154,7 @@
       "accounts": [
         {
           "name": "game",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  103,
-                  97,
-                  109,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "registry"
-              },
-              {
-                "kind": "account",
-                "path": "game.id",
-                "account": "Game"
-              }
-            ]
-          }
-        },
-        {
-          "name": "registry",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "signer",
@@ -392,49 +195,7 @@
       "accounts": [
         {
           "name": "game",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  103,
-                  97,
-                  109,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "registry"
-              },
-              {
-                "kind": "account",
-                "path": "game.id",
-                "account": "Game"
-              }
-            ]
-          }
-        },
-        {
-          "name": "registry",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  101,
-                  103,
-                  105,
-                  115,
-                  116,
-                  114,
-                  121
-                ]
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "signer",
@@ -470,49 +231,7 @@
           "accounts": [
             {
               "name": "game",
-              "writable": true,
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      103,
-                      97,
-                      109,
-                      101
-                    ]
-                  },
-                  {
-                    "kind": "account",
-                    "path": "registry"
-                  },
-                  {
-                    "kind": "account",
-                    "path": "game.id",
-                    "account": "Game"
-                  }
-                ]
-              }
-            },
-            {
-              "name": "registry",
-              "pda": {
-                "seeds": [
-                  {
-                    "kind": "const",
-                    "value": [
-                      114,
-                      101,
-                      103,
-                      105,
-                      115,
-                      116,
-                      114,
-                      121
-                    ]
-                  }
-                ]
-              }
+              "writable": true
             },
             {
               "name": "signer",
@@ -549,19 +268,6 @@
         100,
         121,
         18
-      ]
-    },
-    {
-      "name": "Registry",
-      "discriminator": [
-        47,
-        174,
-        110,
-        246,
-        184,
-        182,
-        252,
-        218
       ]
     }
   ],
@@ -849,10 +555,6 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "id",
-            "type": "u32"
-          },
-          {
             "name": "from_idx",
             "type": "u8"
           },
@@ -928,10 +630,6 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "id",
-            "type": "u32"
-          },
           {
             "name": "player0",
             "type": "pubkey"
@@ -1025,10 +723,6 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "game_id",
-            "type": "u32"
-          },
-          {
             "name": "creator",
             "type": "pubkey"
           }
@@ -1041,10 +735,6 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "game_id",
-            "type": "u32"
-          },
-          {
             "name": "participant",
             "type": "pubkey"
           }
@@ -1056,10 +746,6 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "id",
-            "type": "u32"
-          },
           {
             "name": "winner",
             "type": "pubkey"
@@ -1077,10 +763,6 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "id",
-            "type": "u32"
-          },
-          {
             "name": "p0",
             "type": "pubkey"
           },
@@ -1097,10 +779,6 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "id",
-            "type": "u32"
-          },
-          {
             "name": "player",
             "type": "pubkey"
           },
@@ -1116,10 +794,6 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "id",
-            "type": "u32"
-          },
           {
             "name": "player",
             "type": "pubkey"
@@ -1159,26 +833,10 @@
       }
     },
     {
-      "name": "Registry",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "next_game_id",
-            "type": "u32"
-          }
-        ]
-      }
-    },
-    {
       "name": "TieChoice",
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "id",
-            "type": "u32"
-          },
           {
             "name": "player",
             "type": "pubkey"
@@ -1199,10 +857,6 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "id",
-            "type": "u32"
-          },
           {
             "name": "outcome",
             "type": "i8"
@@ -1231,10 +885,6 @@
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "id",
-            "type": "u32"
-          },
           {
             "name": "from_idx",
             "type": "u8"

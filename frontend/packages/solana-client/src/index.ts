@@ -49,28 +49,17 @@ export class RpsGameClient {
     );
   }
 
-  // Get registry PDA
-  public registryPda(): PublicKey {
+  // Get game PDA (now uses payer's public key as seed)
+  public gamePda(payer: PublicKey): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from('registry')],
-      this.program.programId,
-    );
-    return pda;
-  }
-
-  // Get game PDA
-  public gamePda(registry: PublicKey, id: number): PublicKey {
-    const b = Buffer.alloc(4);
-    b.writeUInt32LE(id, 0);
-    const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from('game'), registry.toBuffer(), b],
+      [Buffer.from('game'), payer.toBuffer()],//TODO: will gameId be the same every time for this user???
       this.program.programId,
     );
     return pda;
   }
 
   // Create a new game
-  async createGame(): Promise<{ gameId: number; gamePda: PublicKey }> {
+  async createGame(): Promise<{ gamePda: PublicKey }> {
     // Check if already creating a game
     if (this.isCreatingGame) {
       throw new Error('Game creation already in progress');
@@ -92,21 +81,7 @@ export class RpsGameClient {
         throw new Error('Insufficient SOL balance. Need at least 0.01 SOL for transaction fees.');
       }
       
-      const registry = this.registryPda();
-      console.log('Registry PDA:', registry.toString());
-      
-      // Get next game ID from registry
-      let nextId = 0;
-      try {
-        const reg = await this.program.account.registry.fetch(registry);
-        nextId = Number(reg.nextGameId);
-        console.log('Found registry, next game ID:', nextId);
-      } catch (error) {
-        console.log('Registry not found, starting with game ID 0');
-        console.log('Registry fetch error:', error);
-      }
-
-      const gamePda = this.gamePda(registry, nextId);
+      const gamePda = this.gamePda(this.provider.wallet.publicKey!);
       console.log('Game PDA:', gamePda.toString());
 
       // Call the create_game instruction on the smart contract
@@ -114,7 +89,6 @@ export class RpsGameClient {
       const signature = await this.program.methods
         .createGame()
         .accountsStrict({
-          registry,
           game: gamePda,
           payer: this.provider.wallet.publicKey,
           systemProgram: SystemProgram.programId,
@@ -129,7 +103,7 @@ export class RpsGameClient {
       console.log('Transaction signature:', signature);
       console.log('Game created successfully!');
 
-      return { gameId: nextId, gamePda };
+      return { gamePda };
     } catch (error) {
       console.error('Game creation failed:', error);
       throw error;
@@ -141,13 +115,10 @@ export class RpsGameClient {
 
   // Join an existing game
   async joinGame(gamePda: PublicKey): Promise<void> {
-    const registry = this.registryPda();
-
     await this.program.methods
       .joinGame()
       .accountsStrict({
         game: gamePda,
-        registry,
         joiner: this.provider.wallet.publicKey,
       })
       .rpc();
@@ -155,14 +126,11 @@ export class RpsGameClient {
 
   // Place flag at specific coordinates
   async placeFlag(gamePda: PublicKey, x: number, y: number): Promise<void> {
-    const registry = this.registryPda();
-
     await this.program.methods
       .placeFlagXy(x, y)
       .accountsStrict({
         inner: {
           game: gamePda,
-          registry,
           signer: this.provider.wallet.publicKey,
         },
       })
@@ -175,8 +143,6 @@ export class RpsGameClient {
     isP0: boolean,
     flagPos: number
   ): Promise<void> {
-    const registry = this.registryPda();
-    
     // Get spawn cells for the player
     const cells = spawnCells(isP0).filter(i => i !== flagPos);
     const xs = cells.map(i => toXY(i).x);
@@ -188,7 +154,6 @@ export class RpsGameClient {
       .accountsStrict({
         inner: {
           game: gamePda,
-          registry,
           signer: this.provider.wallet.publicKey,
         },
       })
@@ -202,14 +167,11 @@ export class RpsGameClient {
     ys: number[],
     pieces: number[]
   ): Promise<void> {
-    const registry = this.registryPda();
-
     await this.program.methods
       .submitLineupXy(u8(xs), u8(ys), u8(pieces))
       .accountsStrict({
         inner: {
           game: gamePda,
-          registry,
           signer: this.provider.wallet.publicKey,
         },
       })
@@ -224,13 +186,10 @@ export class RpsGameClient {
     toX: number,
     toY: number
   ): Promise<void> {
-    const registry = this.registryPda();
-
     await this.program.methods
       .movePieceXy(fromX, fromY, toX, toY)
       .accountsStrict({
         game: gamePda,
-        registry,
         signer: this.provider.wallet.publicKey,
       })
       .rpc();
@@ -238,13 +197,10 @@ export class RpsGameClient {
 
   // Choose weapon for tie-breaking
   async chooseWeapon(gamePda: PublicKey, choice: Choice): Promise<void> {
-    const registry = this.registryPda();
-
     await this.program.methods
       .chooseWeapon(choice)
       .accountsStrict({
         game: gamePda,
-        registry,
         signer: this.provider.wallet.publicKey,
       })
       .rpc();
