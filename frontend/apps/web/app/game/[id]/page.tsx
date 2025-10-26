@@ -204,10 +204,15 @@ export default function GamePage() {
         isSettingLineup
       });
       
+      // Based on smart contract: lineup can be submitted in Created, Joined, FlagsPlaced, LineupP0Set, LineupP1Set phases
+      // But we show controls when it's the player's turn to submit
       const shouldSetLineup = 
-        (gameState.phase === 4 && isPlayer0) || // FlagsPlaced phase, player 0
-        (gameState.phase === 5 && isPlayer1) || // LineupP0Set phase, player 1
-        (gameState.phase <= 3 && (isPlayer0 || isPlayer1)); // TEMPORARY: Allow lineup setting in early phases for testing
+        (gameState.phase === 1 && isPlayer0) || // Joined phase, player 0 can submit first
+        (gameState.phase === 1 && isPlayer1 && gameState.p0 !== '11111111111111111111111111111111') || // Joined phase, player 1 can submit if P0 exists
+        (gameState.phase === 2 && isPlayer1) || // FlagP0Placed phase, player 1 can submit
+        (gameState.phase === 3 && isPlayer0) || // FlagP1Placed phase, player 0 can submit
+        (gameState.phase === 4 && isPlayer0) || // FlagsPlaced phase, player 0 can submit
+        (gameState.phase === 5 && isPlayer1);   // LineupP0Set phase, player 1 can submit
       
       console.log('Should set lineup:', shouldSetLineup);
       
@@ -215,7 +220,7 @@ export default function GamePage() {
         console.log('Setting lineup mode to true and generating lineup');
         setIsSettingLineup(true);
         setMyLineup(generateRandomLineup());
-      } else if (gameState.phase >= 6) { // LineupP1Set phase or later - lineup already submitted
+      } else if (gameState.phase >= 7) { // Active phase or later - lineup already submitted
         console.log('Lineup already submitted, hiding controls');
         setIsSettingLineup(false);
       }
@@ -1121,7 +1126,17 @@ export default function GamePage() {
             </div>
           </div>
           <div style={{ fontSize: 14, color: '#c5c6c7' }}>
-            <div>Phase: {gameState?.phase || 'Unknown'} {gameState?.phase === 4 ? '(FlagsPlaced)' : gameState?.phase === 5 ? '(LineupP0Set)' : gameState?.phase === 6 ? '(LineupP1Set)' : gameState?.phase === 7 ? '(Active)' : ''}</div>
+            <div>Phase: {gameState?.phase || 'Unknown'} {
+              gameState?.phase === 0 ? '(Created)' :
+              gameState?.phase === 1 ? '(Joined)' :
+              gameState?.phase === 2 ? '(FlagP0Placed)' :
+              gameState?.phase === 3 ? '(FlagP1Placed)' :
+              gameState?.phase === 4 ? '(FlagsPlaced)' :
+              gameState?.phase === 5 ? '(LineupP0Set)' :
+              gameState?.phase === 6 ? '(LineupP1Set)' :
+              gameState?.phase === 7 ? '(Active)' :
+              gameState?.phase === 8 ? '(Finished)' : ''
+            }</div>
             <div>Game ID: {gameId}</div>
             <div>Live Pieces: {gameState?.live0 || 0} vs {gameState?.live1 || 0}</div>
             <div>Setting Lineup: {isSettingLineup ? 'Yes' : 'No'}</div>
@@ -1131,7 +1146,14 @@ export default function GamePage() {
             <div>Opponent's lineup submitted: {gameState?.phase >= (isPlayer0 ? 6 : 5) ? 'Yes' : 'No'}</div>
             <div style={{ marginTop: 8, fontSize: 12, color: '#8a9ba8' }}>
               <div>Debug: Phase {gameState?.phase}, P0: {isPlayer0 ? 'Yes' : 'No'}, P1: {isPlayer1 ? 'Yes' : 'No'}</div>
-              <div>Should show lineup: {(gameState?.phase === 4 && isPlayer0) || (gameState?.phase === 5 && isPlayer1) ? 'Yes' : 'No'}</div>
+              <div>Should show lineup: {
+                (gameState?.phase === 1 && isPlayer0) ||
+                (gameState?.phase === 1 && isPlayer1 && gameState?.p0 !== '11111111111111111111111111111111') ||
+                (gameState?.phase === 2 && isPlayer1) ||
+                (gameState?.phase === 3 && isPlayer0) ||
+                (gameState?.phase === 4 && isPlayer0) ||
+                (gameState?.phase === 5 && isPlayer1) ? 'Yes' : 'No'
+              }</div>
             </div>
           </div>
         </div>

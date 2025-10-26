@@ -3,7 +3,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { AnchorProvider } from '@coral-xyz/anchor';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { RpsGameClient, Phase, Choice, Piece, Owner } from '../index';
-import idl from '../idl/idl.json';
+import idl from '../idl/solana_icq_rps.json';
 
 export interface GameState {
   gameId: number;
@@ -66,22 +66,60 @@ export function useRpsGame(gameId?: number): UseRpsGameReturn {
   useEffect(() => {
     if (connected && wallet && publicKey) {
       try {
+        console.log('Initializing game client...');
+        console.log('Wallet connected:', connected);
+        console.log('Wallet adapter:', wallet.adapter);
+        console.log('Wallet adapter methods:', {
+          signTransaction: typeof wallet.adapter.signTransaction,
+          signAllTransactions: typeof wallet.adapter.signAllTransactions,
+          connected: wallet.adapter.connected,
+          publicKey: wallet.adapter.publicKey?.toString()
+        });
+        console.log('Public key:', publicKey.toString());
+        
         const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+        
+        // Create a wallet object that implements the required interface
+        const walletObj = {
+          publicKey: publicKey,
+          signTransaction: async (tx: any) => {
+            console.log('Signing transaction:', tx);
+            if (wallet.adapter.signTransaction) {
+              return await wallet.adapter.signTransaction(tx);
+            }
+            throw new Error('Wallet does not support signTransaction');
+          },
+          signAllTransactions: async (txs: any[]) => {
+            console.log('Signing transactions:', txs.length);
+            if (wallet.adapter.signAllTransactions) {
+              return await wallet.adapter.signAllTransactions(txs);
+            }
+            throw new Error('Wallet does not support signAllTransactions');
+          },
+        };
+        
         const provider = new AnchorProvider(
           connection,
-          wallet.adapter as any,
-          { commitment: 'confirmed' }
+          walletObj as any,
+          { 
+            commitment: 'confirmed',
+            preflightCommitment: 'confirmed'
+          }
         );
         
-        // Use the imported IDL
+        console.log('Provider created:', provider);
         
+        // Use the imported IDL
         const client = new RpsGameClient(provider, idl as any);
         setGameClient(client);
         setError(null);
+        console.log('Game client initialized successfully');
       } catch (err) {
+        console.error('Failed to initialize game client:', err);
         setError(`Failed to initialize game client: ${err}`);
       }
     } else {
+      console.log('Wallet not ready:', { connected, wallet: !!wallet, publicKey: !!publicKey });
       setGameClient(null);
       setGameState(null);
     }

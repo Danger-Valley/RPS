@@ -79,21 +79,39 @@ export class RpsGameClient {
     this.isCreatingGame = true;
     
     try {
+      console.log('Creating game...');
+      console.log('Provider wallet:', this.provider.wallet.publicKey?.toString());
+      console.log('Program ID:', this.program.programId.toString());
+      console.log('RPC URL:', this.connection.rpcEndpoint);
+      
+      // Check wallet balance
+      const balance = await this.connection.getBalance(this.provider.wallet.publicKey!);
+      console.log('Wallet balance:', balance / 1e9, 'SOL');
+      
+      if (balance < 0.01 * 1e9) {
+        throw new Error('Insufficient SOL balance. Need at least 0.01 SOL for transaction fees.');
+      }
+      
       const registry = this.registryPda();
+      console.log('Registry PDA:', registry.toString());
       
       // Get next game ID from registry
       let nextId = 0;
       try {
         const reg = await this.program.account.registry.fetch(registry);
         nextId = Number(reg.nextGameId);
+        console.log('Found registry, next game ID:', nextId);
       } catch (error) {
         console.log('Registry not found, starting with game ID 0');
+        console.log('Registry fetch error:', error);
       }
 
       const gamePda = this.gamePda(registry, nextId);
+      console.log('Game PDA:', gamePda.toString());
 
       // Call the create_game instruction on the smart contract
-      await this.program.methods
+      console.log('Sending createGame transaction...');
+      const signature = await this.program.methods
         .createGame()
         .accountsStrict({
           registry,
@@ -102,13 +120,19 @@ export class RpsGameClient {
           systemProgram: SystemProgram.programId,
         })
         .rpc({
-          skipPreflight: true,
+          skipPreflight: true, // Enable preflight checks
           preflightCommitment: 'confirmed',
           commitment: 'confirmed',
-          maxRetries: 0 // Prevent automatic retries
+          maxRetries: 0 // Allow retries
         });
 
+      console.log('Transaction signature:', signature);
+      console.log('Game created successfully!');
+
       return { gameId: nextId, gamePda };
+    } catch (error) {
+      console.error('Game creation failed:', error);
+      throw error;
     } finally {
       // Reset the flag
       this.isCreatingGame = false;
