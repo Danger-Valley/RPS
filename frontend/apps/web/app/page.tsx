@@ -104,7 +104,7 @@ export default function HomePage() {
           {isCreatingGame ? 'Creating...' : 'Start Game'}
         </button>
         
-        <button
+        {/* <button
           style={{ 
             padding: '12px 24px',
             background: connected ? '#ff6b6b' : '#666',
@@ -120,7 +120,7 @@ export default function HomePage() {
                  onClick={handleStartPrivateGame}
         >
           {isCreatingPrivateGame ? 'Creating...' : 'Start Private Game'}
-        </button>
+        </button> */}
       </div>
 
       {error && (
