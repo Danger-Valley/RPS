@@ -8,14 +8,8 @@ pub const HEIGHT: u8 = 6;
 pub const CELLS: usize = (WIDTH as usize) * (HEIGHT as usize);
 
 #[account]
-pub struct Registry {
-    pub next_game_id: u32,
-}
-
-#[account]
 #[derive(InitSpace)]
 pub struct Game {
-    pub id: u32,
     pub player0: Pubkey,
     pub player1: Pubkey,
     pub winner: Option<Pubkey>,
@@ -46,9 +40,9 @@ impl Game {
         Phase::from(self.phase)
     }
 
-    pub const SIZE_PLAIN: usize =
-        4 + 32 + 32 + 32 + 1 + 1 + CELLS + CELLS + 2 + 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1;
-    pub const SIZE: usize = 8 + Self::SIZE_PLAIN + 16;
+    pub const SIZE_PLAIN: usize = 196;
+    
+    pub const SIZE: usize = 8 + Self::SIZE_PLAIN;
 }
 
 pub fn clear_board(g: &mut Game) {

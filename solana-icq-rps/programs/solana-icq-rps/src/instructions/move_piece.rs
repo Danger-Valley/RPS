@@ -5,15 +5,8 @@ use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct MovePiece<'info> {
-    #[account(
-        mut,
-        seeds = [b"game", registry.key().as_ref(), &game.id.to_le_bytes()],
-        bump
-    )]
+    #[account(mut)]
     pub game: Account<'info, Game>,
-    /// CHECK: seed-only
-    #[account(seeds=[b"registry"], bump)]
-    pub registry: UncheckedAccount<'info>,
     pub signer: Signer<'info>,
 }
 
@@ -102,7 +95,6 @@ fn do_move_piece(g: &mut Game, signer: &Signer, from_idx: u8, to_idx: u8) -> Res
         }
 
         emit!(MoveMade {
-            id: g.id,
             player: me,
             from_idx,
             to_idx
@@ -125,7 +117,6 @@ fn do_move_piece(g: &mut Game, signer: &Signer, from_idx: u8, to_idx: u8) -> Res
         g.board_pieces[to] = Piece::Empty as u8;
 
         emit!(Battle {
-            id: g.id,
             from_idx,
             to_idx,
             attacker,
@@ -152,16 +143,11 @@ fn do_move_piece(g: &mut Game, signer: &Signer, from_idx: u8, to_idx: u8) -> Res
         g.tie_to = to_idx;
         g.choice_made0 = false;
         g.choice_made1 = false;
-        emit!(TieStarted {
-            id: g.id,
-            from_idx,
-            to_idx
-        });
+        emit!(TieStarted { from_idx, to_idx });
         return Ok(());
     }
 
     emit!(Battle {
-        id: g.id,
         from_idx,
         to_idx,
         attacker,
@@ -203,7 +189,6 @@ fn do_move_piece(g: &mut Game, signer: &Signer, from_idx: u8, to_idx: u8) -> Res
     }
 
     emit!(MoveMade {
-        id: g.id,
         player: me,
         from_idx,
         to_idx
@@ -239,7 +224,6 @@ fn finish(g: &mut Game, winner: Pubkey, reason: &str) -> Result<()> {
     g.phase = Phase::Finished as u8;
     g.winner = Some(winner);
     emit!(GameOver {
-        id: g.id,
         winner,
         reason: reason.to_string()
     });

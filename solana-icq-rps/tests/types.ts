@@ -21,13 +21,10 @@ export type Owner = (typeof Owner)[keyof typeof Owner];
 export const Phase = {
   Created: 0,
   Joined: 1,
-  FlagP0Placed: 2,
-  FlagP1Placed: 3,
-  FlagsPlaced: 4,
-  LineupP0Set: 5,
-  LineupP1Set: 6,
-  Active: 7,
-  Finished: 8,
+  LineupP0Set: 2,
+  LineupP1Set: 3,
+  Active: 4,
+  Finished: 5,
 } as const;
 export type Phase = (typeof Phase)[keyof typeof Phase];
 

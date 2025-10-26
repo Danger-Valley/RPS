@@ -5,15 +5,8 @@ use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct SubmitLineup<'info> {
-    #[account(
-        mut,
-        seeds = [b"game", registry.key().as_ref(), &game.id.to_le_bytes()],
-        bump
-    )]
+    #[account(mut)]
     pub game: Account<'info, Game>,
-    /// CHECK: seed-only
-    #[account(seeds=[b"registry"], bump)]
-    pub registry: UncheckedAccount<'info>,
     pub signer: Signer<'info>,
 }
 
@@ -62,11 +55,7 @@ pub fn submit_lineup_xy(
 
 fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u8]) -> Result<()> {
     match g.phase() {
-        Phase::Created
-        | Phase::Joined
-        | Phase::FlagsPlaced
-        | Phase::LineupP0Set
-        | Phase::LineupP1Set => {}
+        Phase::Created | Phase::Joined | Phase::LineupP0Set | Phase::LineupP1Set => {}
         _ => return err!(ErrorCode::BadPhase),
     }
     require!(
@@ -79,6 +68,18 @@ fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u
     let is_p0 = s == g.player0;
     let is_p1 = s == g.player1;
     require!(is_p0 || is_p1, ErrorCode::NotParticipant);
+
+    if is_p0 {
+        require!(
+            g.phase() != Phase::LineupP0Set,
+            ErrorCode::Player0LineupAlreadyPlaced
+        );
+    } else {
+        require!(
+            g.phase() != Phase::LineupP1Set,
+            ErrorCode::Player1LineupAlreadyPlaced
+        );
+    }
 
     let mut flag_count = 0usize;
     let mut flag_idx: u8 = 0;
@@ -109,7 +110,10 @@ fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u
 
         let p = Piece::from(pieces[i]);
         require!(
-            matches!(p, Piece::Rock | Piece::Paper | Piece::Scissors | Piece::Flag),
+            matches!(
+                p,
+                Piece::Rock | Piece::Paper | Piece::Scissors | Piece::Flag
+            ),
             ErrorCode::OnlyRpsAllowed
         );
 
@@ -157,14 +161,12 @@ fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u
     }
 
     emit!(LineupSubmitted {
-        id: g.id,
         player: s,
         count: positions.len() as u8
     });
     if g.phase() == Phase::Active {
         g.is_player1_turn = false;
         emit!(GameStarted {
-            id: g.id,
             p0: g.player0,
             p1: g.player1
         });
