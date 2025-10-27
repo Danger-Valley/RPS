@@ -53,7 +53,7 @@ export class RpsGameClient {
   // Get game PDA (now uses payer's public key as seed)
   public gamePda(payer: PublicKey, nonce: Buffer): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from('game'), payer.toBuffer(), nonce],//TODO: will gameId be the same every time for this user???
+      [Buffer.from('game'), payer.toBuffer(), nonce],
       this.program.programId,
     );
     return pda;
