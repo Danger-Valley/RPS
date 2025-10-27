@@ -21,6 +21,7 @@ interface Figure {
   oldCol?: number;
   animX?: number;
   animY?: number;
+  isOpponentPlaceholder?: boolean; // Add for debugging
 }
 
 // Game constants
@@ -165,13 +166,14 @@ export default function GamePage() {
       return [];
     }
 
-    console.log('=== OPPONENT LINEUP DEBUG ===');
-    console.log('isPlayer0:', isPlayer0);
-    console.log('isPlayer1:', isPlayer1);
-    console.log('Owner.P0:', Owner.P0);
-    console.log('Owner.P1:', Owner.P1);
-    console.log('gameState.owners:', gameState.owners);
-    console.log('gameState.pieces:', gameState.pieces);
+      console.log('=== OPPONENT LINEUP DEBUG ===');
+      console.log('isPlayer0:', isPlayer0);
+      console.log('isPlayer1:', isPlayer1);
+      console.log('Current player:', isPlayer0 ? 'Player 0' : 'Player 1');
+      console.log('Owner.P0:', Owner.P0);
+      console.log('Owner.P1:', Owner.P1);
+      console.log('gameState.owners:', gameState.owners);
+      console.log('gameState.pieces:', gameState.pieces);
 
     const opponentLineup: Figure[] = [];
     const opponentOwner = isPlayer0 ? Owner.P1 : Owner.P0;
@@ -186,8 +188,9 @@ export default function GamePage() {
         
         console.log(`Found opponent piece at index ${i}, row ${row}, col ${col}`);
         
-        // Only show pieces in opponent's spawn area (top 2 rows for P0, bottom 2 rows for P1)
-        const isOpponentSpawnArea = isPlayer0 ? (row <= 1) : (row >= 4);
+        // Only show pieces in opponent's spawn area
+        // OPPONENT FIGURES ALWAYS ON TOP (rows 0-1) regardless of player
+        const isOpponentSpawnArea = row <= 1;
         
         console.log(`Is opponent spawn area? ${isOpponentSpawnArea} (isPlayer0: ${isPlayer0}, row: ${row})`);
         
@@ -197,7 +200,7 @@ export default function GamePage() {
             row,
             col,
             weapon: undefined, // No weapon shown for opponent
-            isMyFigure: false,
+            isMyFigure: false, // Use Front state machine
             isAlive: true
           });
         }
@@ -219,10 +222,15 @@ export default function GamePage() {
         Weapon.Trap
       ];
       
-      // Get opponent's spawn area (top 2 rows for P0, bottom 2 rows for P1)
-      const opponentSpawnCells = isPlayer0 ? 
-        Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7), col: i % 7})) :
-        Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7) + 4, col: i % 7}));
+      // Get opponent's spawn area 
+      // OPPONENT FIGURES ALWAYS ON TOP (rows 0-1) regardless of player
+      const opponentSpawnCells = Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7), col: i % 7}));
+      
+      console.log('Opponent spawn area calculation:');
+      console.log('isPlayer0:', isPlayer0);
+      console.log('isPlayer1:', isPlayer1);
+      console.log('Expected opponent area: ALWAYS rows 0-1 (top)');
+      console.log('Opponent spawn cells:', opponentSpawnCells.map(c => `Row ${c.row}, Col ${c.col}`));
       
       // Shuffle spawn cells for random placement
       const shuffledCells = opponentSpawnCells.sort(() => Math.random() - 0.5);
@@ -237,8 +245,9 @@ export default function GamePage() {
               row: cell.row,
               col: cell.col,
               weapon: undefined, // No weapon shown for opponent
-              isMyFigure: true, // Use Back state machine for proper rendering
-              isAlive: true
+              isMyFigure: false, // Use Front state machine
+              isAlive: true,
+              isOpponentPlaceholder: true // Add flag for debugging
             });
           }
         }
@@ -1221,7 +1230,11 @@ export default function GamePage() {
           })}
           
           {/* All figures positioned absolutely */}
-          {riveStatus === 'success' && (isSettingLineup ? myLineup : figures.filter(f => f.isAlive)).map((figure) => {
+          {riveStatus === 'success' && (isSettingLineup ? [...myLineup, ...opponentLineup] : figures.filter(f => f.isAlive)).map((figure) => {
+            // Debug logging for opponent placeholders
+            if (figure.isOpponentPlaceholder) {
+              console.log('Rendering opponent placeholder:', figure.id, 'at row', figure.row, 'col', figure.col, 'isMyFigure:', figure.isMyFigure);
+            }
             const isAnimating = animatingFigure === figure.id;
             
             // Use attack position if attacking, otherwise use animation position if moving, otherwise use normal position
@@ -1257,7 +1270,7 @@ export default function GamePage() {
                     style={{ 
                       width: `${figureSize}px`, 
                       height: `${figureSize}px`, 
-                      transform: `scale(${scaledFigures.includes(figure.id) ? figureScale * 2 : figureScale})${!figure.isMyFigure ? ' scaleX(-1)' : ''}`, 
+                      transform: `scale(${scaledFigures.includes(figure.id) ? figureScale * 2 : figureScale})`, 
                       transformOrigin: 'center center',
                       transition: scaledFigures.includes(figure.id) ? 'transform 0.3s ease-in-out' : 'none'
                     }}

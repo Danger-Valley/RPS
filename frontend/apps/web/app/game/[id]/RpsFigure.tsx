@@ -65,6 +65,7 @@ export default function RpsFigure({
   riveFile
 }: RpsFigureProps) {
   // Choose state machine based on figure ownership
+  // My figures use Back state machine, opponent figures use Front state machine
   const stateMachine = isMyFigure ? 'State Machine Back' : 'State Machine Front';
   
   const { rive, RiveComponent } = useRive({
@@ -123,5 +124,16 @@ export default function RpsFigure({
     }
   }, [rive, trigger, stateMachine]);
 
-  return <RiveComponent style={style} />;
+  // Debug logging for opponent pieces
+  useEffect(() => {
+    if (!isMyFigure) {
+      console.log('[RpsFigure] Rendering opponent piece with Front state machine');
+    }
+  }, [isMyFigure]);
+
+  return (
+    <RiveComponent 
+      style={style}
+    />
+  );
 }
