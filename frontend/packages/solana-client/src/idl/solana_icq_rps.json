@@ -66,6 +66,10 @@
               {
                 "kind": "account",
                 "path": "payer"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
               }
             ]
           }
@@ -80,7 +84,17 @@
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "nonce",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "join_game",
@@ -713,6 +727,15 @@
           {
             "name": "choice1",
             "type": "u8"
+          },
+          {
+            "name": "nonce",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         ]
       }

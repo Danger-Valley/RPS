@@ -19,6 +19,7 @@ import {
   printBoard,
   printGameBoard,
 } from './types';
+import { randomBytes } from 'crypto';
 
 export type Commitment = 'processed' | 'confirmed' | 'finalized';
 
@@ -50,9 +51,9 @@ export class RpsGameClient {
   }
 
   // Get game PDA (now uses payer's public key as seed)
-  public gamePda(payer: PublicKey): PublicKey {
+  public gamePda(payer: PublicKey, nonce: Buffer): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
-      [Buffer.from('game'), payer.toBuffer()],//TODO: will gameId be the same every time for this user???
+      [Buffer.from('game'), payer.toBuffer(), nonce],//TODO: will gameId be the same every time for this user???
       this.program.programId,
     );
     return pda;
@@ -81,13 +82,15 @@ export class RpsGameClient {
         throw new Error('Insufficient SOL balance. Need at least 0.01 SOL for transaction fees.');
       }
       
-      const gamePda = this.gamePda(this.provider.wallet.publicKey!);
+      const nonce = randomBytes(32);
+
+      const gamePda = this.gamePda(this.provider.wallet.publicKey!, nonce);
       console.log('Game PDA:', gamePda.toString());
 
       // Call the create_game instruction on the smart contract
       console.log('Sending createGame transaction...');
       const signature = await this.program.methods
-        .createGame()
+        .createGame([...nonce])
         .accountsStrict({
           game: gamePda,
           payer: this.provider.wallet.publicKey,
