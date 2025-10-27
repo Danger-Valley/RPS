@@ -18,8 +18,10 @@ import {
   decodeGame,
   printBoard,
   printGameBoard,
+  isEmptyAddress,
 } from './types';
 import { randomBytes } from 'crypto';
+import { toast } from 'sonner';
 
 export type Commitment = 'processed' | 'confirmed' | 'finalized';
 
@@ -118,13 +120,46 @@ export class RpsGameClient {
 
   // Join an existing game
   async joinGame(gamePda: PublicKey): Promise<void> {
-    await this.program.methods
-      .joinGame()
-      .accountsStrict({
-        game: gamePda,
-        joiner: this.provider.wallet.publicKey,
-      })
-      .rpc();
+    console.log('Joining game...');
+    console.log('Game PDA:', gamePda.toString());
+    console.log('Joiner:', this.provider.wallet.publicKey?.toString());
+    
+    // Check current game state first
+    try {
+      const currentState = await this.getGameState(gamePda);
+      console.log('Current game state:', currentState);
+      
+      // Check if player is already in the game
+      if (currentState.p0 === this.provider.wallet.publicKey?.toString() || 
+          currentState.p1 === this.provider.wallet.publicKey?.toString()) {
+        console.log('Player is already in this game');
+        return; // Already joined, no need to join again
+      }
+      
+      // Check if game already has 2 players
+      console.log('Current game state currentState.p0', currentState.p0);
+      console.log('Current game state currentState.p1', currentState.p1);
+      console.log('Current game state currentState.p0.toString()', currentState.p0.toString());
+      console.log('Current game state currentState.p1.toString()', currentState.p1.toString());
+      console.log('Current game state isEmptyAddress(currentState.p0)', isEmptyAddress(currentState.p0));
+      console.log('Current game state isEmptyAddress(currentState.p1)', isEmptyAddress(currentState.p1));
+      if (!isEmptyAddress(currentState.p0) && !isEmptyAddress(currentState.p1)) {
+        throw new Error('Game is already full (2)');
+      }
+
+      await this.program.methods
+        .joinGame()
+        .accountsStrict({
+            game: gamePda,
+            joiner: this.provider.wallet.publicKey,
+        })
+        .rpc();
+    
+        console.log('Successfully joined game');
+    } catch (err) {
+      console.error('Error checking game state before joining:', err);
+      toast.error((err as Error)?.message ?? 'Unknown error');
+    }
   }
 
   // Place flag at specific coordinates

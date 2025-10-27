@@ -1,3 +1,5 @@
+import { PublicKey } from "@solana/web3.js";
+
 /**
  * Program IDL in camelCase format in order to be used in JS/TS.
  *
@@ -973,6 +975,11 @@ export type Choice = (typeof Choice)[keyof typeof Choice];
 // Utility functions
 export const toIdx = (x: number, y: number) => y * WIDTH + x;
 export const toXY = (i: number) => ({ x: i % WIDTH, y: Math.floor(i / WIDTH) });
+
+// Check if an address is empty (null, undefined, or default Solana address)
+export const isEmptyAddress = (address: string | null | undefined | PublicKey): boolean => {
+  return !address || address === 'null' || address === '' || address === '11111111111111111111111111111111' || address?.toString() === '11111111111111111111111111111111' || address?.toString() === '';
+};
 
 export const spawnCells = (isP0: boolean) => {
   const cells: number[] = [];

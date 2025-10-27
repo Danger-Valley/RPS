@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { toast } from 'sonner';
-import { useRpsGame } from '@rps/solana-client';
+import { useRpsGame, isEmptyAddress } from '@rps/solana-client';
 import RpsFigure, { Weapon, WEAPON_NAMES } from './RpsFigure';
 import WeaponSelectionPopup from './WeaponSelectionPopup';
 
@@ -61,9 +61,6 @@ export default function GamePage() {
   const [isJoiningGame, setIsJoiningGame] = useState(false);
 
   // Helper function to check if an address is empty/default
-  const isEmptyAddress = (address: string): boolean => {
-    return !address || address === 'null' || address === '' || address === '11111111111111111111111111111111';
-  };
 
   // Initialize figures array from smart contract data
   const [figures, setFigures] = useState<Figure[]>([]);
@@ -164,6 +161,13 @@ export default function GamePage() {
   const handleJoinGame = useCallback(async () => {
     if (!joinGame || isJoiningGame) return;
     
+    // Check if user is already in the game
+    if (gameState && (isPlayer0 || isPlayer1)) {
+      console.log('User is already in this game');
+      toast.info('You are already in this game', { id: 'join-game' });
+      return;
+    }
+    
     setIsJoiningGame(true);
     toast.loading('Joining game...', { id: 'join-game' });
     
@@ -177,7 +181,7 @@ export default function GamePage() {
     } finally {
       setIsJoiningGame(false);
     }
-  }, [joinGame, isJoiningGame, gamePda]);
+  }, [joinGame, isJoiningGame, gamePda, gameState, isPlayer0, isPlayer1]);
 
   // All useEffect hooks
   useEffect(() => {
@@ -208,7 +212,7 @@ export default function GamePage() {
       // But we show controls when it's the player's turn to submit
       const shouldSetLineup = 
         (gameState.phase === 1 && isPlayer0) || // Joined phase, player 0 can submit first
-        (gameState.phase === 1 && isPlayer1 && gameState.p0 !== '11111111111111111111111111111111') || // Joined phase, player 1 can submit if P0 exists
+        (gameState.phase === 1 && isPlayer1 && !isEmptyAddress(gameState.p0)) || // Joined phase, player 1 can submit if P0 exists
         (gameState.phase === 2 && isPlayer1) || // FlagP0Placed phase, player 1 can submit
         (gameState.phase === 3 && isPlayer0) || // FlagP1Placed phase, player 0 can submit
         (gameState.phase === 4 && isPlayer0) || // FlagsPlaced phase, player 0 can submit
@@ -1148,7 +1152,7 @@ export default function GamePage() {
               <div>Debug: Phase {gameState?.phase}, P0: {isPlayer0 ? 'Yes' : 'No'}, P1: {isPlayer1 ? 'Yes' : 'No'}</div>
               <div>Should show lineup: {
                 (gameState?.phase === 1 && isPlayer0) ||
-                (gameState?.phase === 1 && isPlayer1 && gameState?.p0 !== '11111111111111111111111111111111') ||
+                (gameState?.phase === 1 && isPlayer1 && !isEmptyAddress(gameState?.p0)) ||
                 (gameState?.phase === 2 && isPlayer1) ||
                 (gameState?.phase === 3 && isPlayer0) ||
                 (gameState?.phase === 4 && isPlayer0) ||

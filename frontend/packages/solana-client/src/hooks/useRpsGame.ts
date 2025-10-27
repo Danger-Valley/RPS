@@ -228,7 +228,22 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
       await gameClient.joinGame(gamePdaKey);
       await loadGameState();
     } catch (err) {
-      setError(`Failed to join game: ${err}`);
+      console.error('Join game error:', err);
+      
+      // Handle specific error cases
+      if (err instanceof Error) {
+        if (err.message.includes('already been processed')) {
+          setError('You have already joined this game');
+        } else if (err.message.includes('already full')) {
+          setError('This game is already full (1)');
+        } else if (err.message.includes('already in this game')) {
+          setError('You are already in this game');
+        } else {
+          setError(`Failed to join game: ${err.message}`);
+        }
+      } else {
+        setError(`Failed to join game: ${err}`);
+      }
     } finally {
       setLoading(false);
     }
