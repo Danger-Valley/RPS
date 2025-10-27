@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { toast } from 'sonner';
-import { useRpsGame, isEmptyAddress } from '@rps/solana-client';
+import { useRpsGame, isEmptyAddress, Owner } from '@rps/solana-client';
 import RpsFigure, { Weapon, WEAPON_NAMES } from './RpsFigure';
 import WeaponSelectionPopup from './WeaponSelectionPopup';
 
@@ -13,7 +13,7 @@ interface Figure {
   id: string;
   row: number;
   col: number;
-  weapon: Weapon;
+  weapon?: Weapon; // Optional weapon for opponent pieces
   isMyFigure: boolean;
   isAlive: boolean;
   isMoving?: boolean;
@@ -67,6 +67,7 @@ export default function GamePage() {
   
   // Figure selection state
   const [myLineup, setMyLineup] = useState<Figure[]>([]);
+  const [opponentLineup, setOpponentLineup] = useState<Figure[]>([]);
   const [isSettingLineup, setIsSettingLineup] = useState(false);
 
   // Animation trigger - track which figure should animate
@@ -91,6 +92,12 @@ export default function GamePage() {
 
   // Generate random lineup (4 stones, 4 paper, 4 scissors, 1 flag, 1 trap)
   const generateRandomLineup = useCallback(() => {
+    // Safety check
+    if (!gameState || !publicKey) {
+      console.log('Missing gameState or publicKey, returning empty lineup');
+      return [];
+    }
+
     const lineup: Figure[] = [];
     const pieces = [
       ...Array(4).fill(Weapon.Stone),
@@ -103,6 +110,11 @@ export default function GamePage() {
     console.log('=== LINEUP GENERATION DEBUG ===');
     console.log('isPlayer0:', isPlayer0);
     console.log('isPlayer1:', isPlayer1);
+    console.log('Game State P0:', gameState?.p0?.toString());
+    console.log('Game State P1:', gameState?.p1?.toString());
+    console.log('My Address:', publicKey?.toString());
+    console.log('P0 Match:', gameState?.p0?.toString() === publicKey?.toString());
+    console.log('P1 Match:', gameState?.p1?.toString() === publicKey?.toString());
     console.log('Generated pieces:', pieces);
     console.log('Piece counts:', {
       stones: pieces.filter(p => p === Weapon.Stone).length,
@@ -115,15 +127,10 @@ export default function GamePage() {
     // Shuffle the pieces
     const shuffledPieces = pieces.sort(() => Math.random() - 0.5);
     
-    // TEMPORARY: Force Player 0 positioning for testing
-    const forcePlayer0 = true; // Set to false to use actual player detection
+    // Get spawn cells for the current player (always bottom 2 rows for YOU, regardless of P0/P1)
+    const spawnCells = Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7) + 4, col: i % 7}));
     
-    // Get spawn cells for the current player (bottom 2 rows for P0, top 2 rows for P1)
-    const spawnCells = (isPlayer0 || forcePlayer0) ? 
-      Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7) + 4, col: i % 7})) :
-      Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7), col: i % 7}));
-    
-    console.log('Spawn cells for', isPlayer0 ? 'Player 0' : 'Player 1', ':', spawnCells);
+    console.log('Spawn cells for YOU (always bottom rows 4-5):', spawnCells);
     
     // Shuffle spawn cells
     const shuffledCells = spawnCells.sort(() => Math.random() - 0.5);
@@ -146,16 +153,123 @@ export default function GamePage() {
     });
     
     console.log('Generated lineup:', lineup);
-    console.log('Player type:', isPlayer0 ? 'Player 0 (bottom rows 4-5)' : 'Player 1 (top rows 0-1)');
+    console.log('Player type:', isPlayer0 ? 'Player 0' : 'Player 1', '- YOUR pieces always in bottom rows 4-5');
     console.log('Lineup positions:', lineup.map(f => `Row ${f.row}, Col ${f.col}`));
     return lineup;
-  }, [isPlayer0]);
+  }, [isPlayer0, isPlayer1, gameState, publicKey]);
+
+  // Generate opponent's lineup from game state (without weapons)
+  const generateOpponentLineup = useCallback(() => {
+    if (!gameState || !publicKey) {
+      console.log('generateOpponentLineup: Missing gameState or publicKey');
+      return [];
+    }
+
+    console.log('=== OPPONENT LINEUP DEBUG ===');
+    console.log('isPlayer0:', isPlayer0);
+    console.log('isPlayer1:', isPlayer1);
+    console.log('Owner.P0:', Owner.P0);
+    console.log('Owner.P1:', Owner.P1);
+    console.log('gameState.owners:', gameState.owners);
+    console.log('gameState.pieces:', gameState.pieces);
+
+    const opponentLineup: Figure[] = [];
+    const opponentOwner = isPlayer0 ? Owner.P1 : Owner.P0;
+    
+    console.log('Looking for opponent owner:', opponentOwner);
+    
+    // Find all cells owned by the opponent
+    for (let i = 0; i < gameState.owners.length; i++) {
+      if (gameState.owners[i] === opponentOwner) {
+        const row = Math.floor(i / 7);
+        const col = i % 7;
+        
+        console.log(`Found opponent piece at index ${i}, row ${row}, col ${col}`);
+        
+        // Only show pieces in opponent's spawn area (top 2 rows for P0, bottom 2 rows for P1)
+        const isOpponentSpawnArea = isPlayer0 ? (row <= 1) : (row >= 4);
+        
+        console.log(`Is opponent spawn area? ${isOpponentSpawnArea} (isPlayer0: ${isPlayer0}, row: ${row})`);
+        
+        if (isOpponentSpawnArea) {
+          opponentLineup.push({
+            id: `opponent-${i}`,
+            row,
+            col,
+            weapon: undefined, // No weapon shown for opponent
+            isMyFigure: false,
+            isAlive: true
+          });
+        }
+      }
+    }
+    
+    console.log('Opponent lineup (no weapons):', opponentLineup);
+    
+    // If no opponent pieces found but we're in lineup phase, create placeholder pieces
+    if (opponentLineup.length === 0) {
+      console.log('Creating placeholder opponent pieces for lineup planning');
+      
+      // Create the standard lineup composition
+      const placeholderPieces = [
+        ...Array(4).fill(Weapon.Stone),
+        ...Array(4).fill(Weapon.Paper), 
+        ...Array(4).fill(Weapon.Scissors),
+        Weapon.Flag,
+        Weapon.Trap
+      ];
+      
+      // Get opponent's spawn area (top 2 rows for P0, bottom 2 rows for P1)
+      const opponentSpawnCells = isPlayer0 ? 
+        Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7), col: i % 7})) :
+        Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7) + 4, col: i % 7}));
+      
+      // Shuffle spawn cells for random placement
+      const shuffledCells = opponentSpawnCells.sort(() => Math.random() - 0.5);
+      
+      // Create placeholder figures
+      placeholderPieces.forEach((weapon, index) => {
+        if (index < shuffledCells.length) {
+          const cell = shuffledCells[index];
+          if (cell) {
+            opponentLineup.push({
+              id: `placeholder-opponent-${index}`,
+              row: cell.row,
+              col: cell.col,
+              weapon: undefined, // No weapon shown for opponent
+              isMyFigure: true, // Use Back state machine for proper rendering
+              isAlive: true
+            });
+          }
+        }
+      });
+      
+      console.log('Created placeholder opponent pieces:', opponentLineup.length);
+      console.log('Opponent piece positions:', opponentLineup.map(f => `Row ${f.row}, Col ${f.col}, isMyFigure: ${f.isMyFigure}`));
+    }
+    
+    return opponentLineup;
+  }, [gameState, publicKey, isPlayer0, isPlayer1]);
+
+  // Update opponent lineup when game state changes
+  useEffect(() => {
+    console.log('Opponent lineup useEffect triggered:', { isSettingLineup, gameState: !!gameState });
+    if (isSettingLineup) {
+      console.log('Generating opponent lineup...');
+      const newOpponentLineup = generateOpponentLineup();
+      console.log('Setting opponent lineup:', newOpponentLineup);
+      setOpponentLineup(newOpponentLineup);
+    }
+  }, [gameState, isSettingLineup, generateOpponentLineup]);
 
   // Handle shuffling lineup
   const handleShuffleLineup = useCallback(() => {
     setMyLineup(generateRandomLineup());
+    // Also shuffle opponent lineup for better planning
+    const newOpponentLineup = generateOpponentLineup();
+    setOpponentLineup(newOpponentLineup);
     // toast.success('Lineup shuffled!');
-  }, [generateRandomLineup]);
+  }, [generateRandomLineup, generateOpponentLineup]);
 
   // Handle submitting lineup
   const handleSubmitLineup = useCallback(async () => {
@@ -165,7 +279,7 @@ export default function GamePage() {
       // Convert lineup to the format expected by the smart contract
       const xs = myLineup.map(f => f.col);
       const ys = myLineup.map(f => f.row);
-      const pieces = myLineup.map(f => f.weapon);
+      const pieces = myLineup.map(f => f.weapon || Weapon.None);
       
       console.log('Submitting lineup:', { xs, ys, pieces });
       console.log('Lineup details:', myLineup);
@@ -247,19 +361,23 @@ export default function GamePage() {
         console.log('Setting lineup mode to true and generating lineup');
         setIsSettingLineup(true);
         setMyLineup(generateRandomLineup());
+        // Also generate opponent lineup immediately
+        const initialOpponentLineup = generateOpponentLineup();
+        setOpponentLineup(initialOpponentLineup);
+        console.log('Initial opponent lineup generated:', initialOpponentLineup.length);
       } else if (gameState.phase >= 7) { // Active phase or later - lineup already submitted
         console.log('Lineup already submitted, hiding controls');
         setIsSettingLineup(false);
       }
     }
-  }, [gameState, isAuthorized, isPlayer0, isPlayer1, myLineup.length, generateRandomLineup, isSettingLineup]);
+  }, [gameState, isAuthorized, isPlayer0, isPlayer1, myLineup.length, generateRandomLineup, generateOpponentLineup, isSettingLineup]);
 
   // Update figures when game state changes
   useEffect(() => {
     if (gameState && isAuthorized) {
       const newFigures: Figure[] = [];
-    let figureId = 0;
-    
+      let figureId = 0;
+      
       // Convert smart contract data to figures
       for (let i = 0; i < 42; i++) {
         const row = Math.floor(i / cols);
@@ -274,18 +392,38 @@ export default function GamePage() {
         if (owner !== 0) { // 0 = None in Owner enum
           newFigures.push({
             id: `figure-${figureId++}`,
-              row,
-              col,
+            row,
+            col,
             weapon: piece as Weapon, // Convert Piece enum to Weapon
             isMyFigure,
-              isAlive: true
-            });
-          }
+            isAlive: true
+          });
         }
-    
+      }
+      
+      // During lineup setting, add opponent's pieces (without weapons)
+      if (isSettingLineup) {
+        console.log('Adding opponent pieces during lineup setting...');
+        console.log('Opponent lineup from state:', opponentLineup);
+        console.log('Opponent lineup length:', opponentLineup.length);
+        console.log('Adding to newFigures, current length:', newFigures.length);
+        newFigures.push(...opponentLineup);
+        console.log('After adding opponent pieces, newFigures length:', newFigures.length);
+      }
+      
       setFigures(newFigures);
     }
-  }, [gameState, isAuthorized, isPlayer0, isPlayer1]);
+  }, [gameState, isAuthorized, isPlayer0, isPlayer1, isSettingLineup, opponentLineup]);
+
+  // Debug when opponentLineup changes
+  useEffect(() => {
+    console.log('opponentLineup state changed:', opponentLineup);
+  }, [opponentLineup]);
+
+  // Debug when isSettingLineup changes
+  useEffect(() => {
+    console.log('isSettingLineup changed to:', isSettingLineup);
+  }, [isSettingLineup]);
 
   // Check authorization and join eligibility when game state loads
   useEffect(() => {
@@ -876,8 +1014,8 @@ export default function GamePage() {
     setAttackPhase('prepare');
     
     //TODO: if opponent wins, winner.weapon = 0. So I have to fetch it somehow.
-    console.log('Winner weapon:', WEAPON_NAMES[winner.weapon]);
-    const attackTimeMs = winner.weapon === Weapon.Stone ? 383 : winner.weapon === Weapon.Paper ? 500 : winner.weapon === Weapon.Scissors ? 966 : 400;
+    console.log('Winner weapon:', WEAPON_NAMES[winner.weapon || Weapon.None]);
+    const attackTimeMs = (winner.weapon || Weapon.None) === Weapon.Stone ? 383 : (winner.weapon || Weapon.None) === Weapon.Paper ? 500 : (winner.weapon || Weapon.None) === Weapon.Scissors ? 966 : 400;
 
     // After 400ms, switch to "Attack" phase and scale figures
     setTimeout(() => {
@@ -1180,7 +1318,7 @@ export default function GamePage() {
             <div>My Lineup: {myLineup.length} pieces</div>
             <div style={{ marginTop: 8, color: '#66fcf1', fontWeight: 'bold' }}>Lineup Status</div>
             <div>My lineup submitted: {gameState?.phase && gameState.phase >= (isPlayer0 ? 5 : 6) ? 'Yes' : 'No'}</div>
-            <div>Opponent's lineup submitted: {gameState?.phase && gameState.phase >= (isPlayer0 ? 6 : 5) ? 'Yes' : 'No'}</div>
+            <div>Opponent&apos;s lineup submitted: {gameState?.phase && gameState.phase >= (isPlayer0 ? 6 : 5) ? 'Yes' : 'No'}</div>
             <div style={{ marginTop: 8, fontSize: 12, color: '#8a9ba8' }}>
               <div>Debug: Phase {gameState?.phase}, P0: {isPlayer0 ? 'Yes' : 'No'}, P1: {isPlayer1 ? 'Yes' : 'No'}</div>
               <div>Should show lineup: {
@@ -1196,7 +1334,6 @@ export default function GamePage() {
         </div>
 
         {/* Lineup Controls */}
-        {console.log('Lineup UI check:', { isSettingLineup, gameState: !!gameState, isAuthorized })}
         {isSettingLineup && (
           <div style={{ background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
             <div style={{ color: '#66fcf1', fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>
