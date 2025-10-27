@@ -11,25 +11,3 @@ export const airdropIfNeeded = async (
     await conn.confirmTransaction(sig, 'confirmed');
   }
 };
-
-export const registryPda = (programId: PublicKey) => {
-  const [pda] = PublicKey.findProgramAddressSync(
-    [Buffer.from('registry')],
-    programId,
-  );
-  return pda;
-};
-
-export const gamePda = (
-  programId: PublicKey,
-  registry: PublicKey,
-  id: number,
-) => {
-  const b = Buffer.alloc(4);
-  b.writeUInt32LE(id, 0);
-  const [pda] = PublicKey.findProgramAddressSync(
-    [Buffer.from('game'), registry.toBuffer(), b],
-    programId,
-  );
-  return pda;
-};

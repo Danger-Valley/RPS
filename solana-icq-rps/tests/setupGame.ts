@@ -10,6 +10,7 @@ import {
   toIdx,
   u8,
 } from './cells';
+const { randomBytes } = require('crypto');
 
 export interface GameSetupReturn {
   program: anchor.Program<any>;
@@ -29,14 +30,16 @@ export const setupGame = async (): Promise<GameSetupReturn> => {
   await airdropIfNeeded(conn, p0);
   await airdropIfNeeded(conn, p1.publicKey);
 
+  const nonce = randomBytes(32);
+
   const [game] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from('game'), p0.toBuffer()],
+    [Buffer.from('game'), p0.toBuffer(), Buffer.from(nonce)],
     program.programId,
   );
 
   // create
   await program.methods
-    .createGame()
+    .createGame([...nonce])
     .accountsStrict({
       game,
       payer: p0,
