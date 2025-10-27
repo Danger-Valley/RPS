@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { AnchorProvider } from '@coral-xyz/anchor';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { RpsGameClient, Phase, Choice, Piece, Owner } from '../index';
+import { RpsGameClient, Phase, Choice, Piece, Owner, isEmptyAddress } from '../index';
 import idl from '../idl/solana_icq_rps.json';
 
 export interface GameState {
@@ -363,9 +363,23 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
   }, [gameClient, gameState]);
 
   // Computed values
-  const isPlayer0 = gameState?.p0 === publicKey?.toString();
-  const isPlayer1 = gameState?.p1 === publicKey?.toString();
+  const isPlayer0 = gameState?.p0?.toString() === publicKey?.toString() && !isEmptyAddress(gameState?.p0?.toString());
+  const isPlayer1 = gameState?.p1?.toString() === publicKey?.toString() && !isEmptyAddress(gameState?.p1?.toString());
   const isMyTurn = gameState ? isPlayerTurn(isPlayer1) : false;
+
+  // Debug logging
+  if (gameState && publicKey) {
+    console.log('Hook player detection:', {
+      userAddress: publicKey.toString(),
+      p0: gameState.p0?.toString(),
+      p1: gameState.p1?.toString(),
+      isEmptyP0: isEmptyAddress(gameState.p0?.toString()),
+      isEmptyP1: isEmptyAddress(gameState.p1?.toString()),
+      isPlayer0,
+      isPlayer1,
+      phase: gameState.phase
+    });
+  }
 
   return {
     gameState,

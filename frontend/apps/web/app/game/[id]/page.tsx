@@ -100,13 +100,30 @@ export default function GamePage() {
       Weapon.Trap
     ];
     
+    console.log('=== LINEUP GENERATION DEBUG ===');
+    console.log('isPlayer0:', isPlayer0);
+    console.log('isPlayer1:', isPlayer1);
+    console.log('Generated pieces:', pieces);
+    console.log('Piece counts:', {
+      stones: pieces.filter(p => p === Weapon.Stone).length,
+      paper: pieces.filter(p => p === Weapon.Paper).length,
+      scissors: pieces.filter(p => p === Weapon.Scissors).length,
+      flags: pieces.filter(p => p === Weapon.Flag).length,
+      traps: pieces.filter(p => p === Weapon.Trap).length
+    });
+    
     // Shuffle the pieces
     const shuffledPieces = pieces.sort(() => Math.random() - 0.5);
     
+    // TEMPORARY: Force Player 0 positioning for testing
+    const forcePlayer0 = true; // Set to false to use actual player detection
+    
     // Get spawn cells for the current player (bottom 2 rows for P0, top 2 rows for P1)
-    const spawnCells = isPlayer0 ? 
+    const spawnCells = (isPlayer0 || forcePlayer0) ? 
       Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7) + 4, col: i % 7})) :
       Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7), col: i % 7}));
+    
+    console.log('Spawn cells for', isPlayer0 ? 'Player 0' : 'Player 1', ':', spawnCells);
     
     // Shuffle spawn cells
     const shuffledCells = spawnCells.sort(() => Math.random() - 0.5);
@@ -128,13 +145,16 @@ export default function GamePage() {
       }
     });
     
+    console.log('Generated lineup:', lineup);
+    console.log('Player type:', isPlayer0 ? 'Player 0 (bottom rows 4-5)' : 'Player 1 (top rows 0-1)');
+    console.log('Lineup positions:', lineup.map(f => `Row ${f.row}, Col ${f.col}`));
     return lineup;
   }, [isPlayer0]);
 
   // Handle shuffling lineup
   const handleShuffleLineup = useCallback(() => {
     setMyLineup(generateRandomLineup());
-    toast.success('Lineup shuffled!');
+    // toast.success('Lineup shuffled!');
   }, [generateRandomLineup]);
 
   // Handle submitting lineup
@@ -146,6 +166,9 @@ export default function GamePage() {
       const xs = myLineup.map(f => f.col);
       const ys = myLineup.map(f => f.row);
       const pieces = myLineup.map(f => f.weapon);
+      
+      console.log('Submitting lineup:', { xs, ys, pieces });
+      console.log('Lineup details:', myLineup);
       
       await submitCustomLineup(xs, ys, pieces);
       
@@ -280,6 +303,16 @@ export default function GamePage() {
       const p1Address = String(gameState.p1);
       const isPlayer0 = p0Address === userAddress && !isEmptyAddress(p0Address);
       const isPlayer1 = p1Address === userAddress && !isEmptyAddress(p1Address);
+      
+      console.log('Authorization check:', {
+        userAddress,
+        p0Address,
+        p1Address,
+        isPlayer0,
+        isPlayer1,
+        isEmptyP0: isEmptyAddress(p0Address),
+        isEmptyP1: isEmptyAddress(p1Address)
+      });
       
       // Check if user is already a player
       if (isPlayer0 || isPlayer1) {
@@ -1161,26 +1194,9 @@ export default function GamePage() {
             </div>
           </div>
         </div>
-        <div style={{ height: 260, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
-          <strong style={{ color: '#c5c6c7' }}>Player Info</strong>
-          <div style={{ marginTop: 8, fontSize: 14, color: '#c5c6c7' }}>
-            <div>You are: {isPlayer0 ? 'Player 0' : isPlayer1 ? 'Player 1' : 'Unknown'}</div>
-            <div>Your turn: {isMyTurn ? 'Yes' : 'No'}</div>
-            <div style={{ marginTop: 8 }}>
-              <div>Player 0: {gameState?.p0 ? `${String(gameState.p0).slice(0, 8)}...` : 'Unknown'}</div>
-              <div>Player 1: {gameState?.p1 ? `${String(gameState.p1).slice(0, 8)}...` : 'Unknown'}</div>
-            </div>
-          </div>
-        </div>
-        <div style={{ height: 200, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 24, color: '#66fcf1' }}>{gameState?.live0 || 0}</div>
-            <div style={{ fontSize: 14, color: '#c5c6c7' }}>vs</div>
-            <div style={{ fontSize: 24, color: '#66fcf1' }}>{gameState?.live1 || 0}</div>
-          </div>
-        </div>
-        
+
         {/* Lineup Controls */}
+        {console.log('Lineup UI check:', { isSettingLineup, gameState: !!gameState, isAuthorized })}
         {isSettingLineup && (
           <div style={{ background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
             <div style={{ color: '#66fcf1', fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>
@@ -1238,6 +1254,43 @@ export default function GamePage() {
             </div>
           </div>
         )}
+
+        <div style={{ height: 260, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
+          <strong style={{ color: '#c5c6c7' }}>Player Info</strong>
+          <div style={{ marginTop: 8, fontSize: 14, color: '#c5c6c7' }}>
+            <div>You are: {isPlayer0 ? 'Player 0' : isPlayer1 ? 'Player 1' : 'Unknown'}</div>
+            <div>Your turn: {isMyTurn ? 'Yes' : 'No'}</div>
+            <div style={{ marginTop: 8 }}>
+              <div>Player 0: {gameState?.p0 ? `${String(gameState.p0).slice(0, 8)}...` : 'Unknown'}</div>
+              <div>Player 1: {gameState?.p1 ? `${String(gameState.p1).slice(0, 8)}...` : 'Unknown'}</div>
+            </div>
+          </div>
+        </div>
+        <div style={{ height: 200, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 24, color: '#66fcf1' }}>{gameState?.live0 || 0}</div>
+            <div style={{ fontSize: 14, color: '#c5c6c7' }}>vs</div>
+            <div style={{ fontSize: 24, color: '#66fcf1' }}>{gameState?.live1 || 0}</div>
+          </div>
+        </div>
+        
+        {/* Debug Info */}
+        {gameState && (
+          <div style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 8, padding: 12, marginBottom: 16 }}>
+            <div style={{ color: '#66fcf1', fontWeight: 'bold', marginBottom: 8 }}>Debug Info</div>
+            <div style={{ fontSize: 12, color: '#c5c6c7' }}>
+              <div>Phase: {gameState.phase}</div>
+              <div>isPlayer0: {isPlayer0 ? 'Yes' : 'No'}</div>
+              <div>isPlayer1: {isPlayer1 ? 'Yes' : 'No'}</div>
+              <div>isAuthorized: {isAuthorized ? 'Yes' : 'No'}</div>
+              <div>isSettingLineup: {isSettingLineup ? 'Yes' : 'No'}</div>
+              <div>myLineup.length: {myLineup.length}</div>
+              <div>P0: {gameState.p0?.toString()}</div>
+              <div>P1: {gameState.p1?.toString()}</div>
+            </div>
+          </div>
+        )}
+
       </aside>
       
       {/* Weapon Selection Popup */}

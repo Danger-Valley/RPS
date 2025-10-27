@@ -205,6 +205,12 @@ export class RpsGameClient {
     ys: number[],
     pieces: number[]
   ): Promise<void> {
+    console.log('Submitting custom lineup...');
+    console.log('Game PDA:', gamePda.toString());
+    console.log('Positions (xs, ys):', xs, ys);
+    console.log('Pieces:', pieces);
+    console.log('Pieces as bytes:', u8(pieces));
+    
     await this.program.methods
       .submitLineupXy(u8(xs), u8(ys), u8(pieces))
       .accountsStrict({
@@ -214,6 +220,8 @@ export class RpsGameClient {
         },
       })
       .rpc();
+    
+    console.log('Lineup submitted successfully');
   }
 
   // Move a piece
