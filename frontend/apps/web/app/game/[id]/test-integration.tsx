@@ -15,7 +15,7 @@ export default function TestSmartContractIntegration() {
     createGame, 
     joinGame,
     refreshGameState 
-  } = useRpsGame(1);
+  } = useRpsGame('test-game-1');
 
   const addTestResult = (result: string) => {
     setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${result}`]);
@@ -43,7 +43,6 @@ export default function TestSmartContractIntegration() {
     
     if (gameState) {
       addTestResult('✅ Game state loaded');
-      addTestResult(`Game ID: ${gameState.gameId}`);
       addTestResult(`Phase: ${gameState.phase}`);
       addTestResult(`Player 0: ${gameState.p0}`);
       addTestResult(`Player 1: ${gameState.p1}`);
@@ -65,6 +64,7 @@ export default function TestSmartContractIntegration() {
     if (connected) {
       runTests();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
 
   return (
@@ -131,7 +131,7 @@ export default function TestSmartContractIntegration() {
       }}>
         <h3 style={{ color: '#66fcf1', marginTop: 0 }}>Test Results:</h3>
         {testResults.length === 0 ? (
-          <div style={{ color: '#666' }}>No test results yet. Click "Run Tests" to start.</div>
+          <div style={{ color: '#666' }}>No test results yet. Click &quot;Run Tests&quot; to start.</div>
         ) : (
           testResults.map((result, index) => (
             <div key={index} style={{ marginBottom: '5px' }}>

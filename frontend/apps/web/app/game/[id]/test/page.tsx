@@ -67,6 +67,7 @@ export default function TestPage() {
     if (connected) {
       runTests();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
 
   return (
@@ -135,7 +136,7 @@ export default function TestPage() {
       }}>
         <h3 style={{ color: '#66fcf1', marginTop: 0 }}>Test Results:</h3>
         {testResults.length === 0 ? (
-          <div style={{ color: '#666' }}>No test results yet. Click "Run Tests" to start.</div>
+          <div style={{ color: '#666' }}>No test results yet. Click &quot;Run Tests&quot; to start.</div>
         ) : (
           testResults.map((result, index) => (
             <div key={index} style={{ marginBottom: '5px' }}>
