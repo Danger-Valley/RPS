@@ -1,9 +1,8 @@
 import './globals.css';
-import type { ReactNode } from 'react';
 import WalletProviders from './providers/WalletProviders';
 import { Toaster } from 'sonner';
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
