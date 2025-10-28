@@ -290,11 +290,12 @@ export default function GamePage() {
     try {
       // Convert lineup to the format expected by the smart contract
       const xs = myLineup.map(f => f.col);
-      const ys = myLineup.map(f => f.row);
+      // For Player 1 the board is flipped vertically in the UI; flip Y back for on-chain
+      const ys = myLineup.map(f => (isPlayer1 ? (rows - 1 - f.row) : f.row));
       // For trap pieces, send Weapon.Trap; for others, use their weapon or Weapon.None
       const pieces = myLineup.map(f => f.isTrap ? Weapon.Trap : (f.weapon || Weapon.None));
       
-      console.log('Submitting lineup:', { xs, ys, pieces });
+      console.log('Submitting lineup:', { xs, ys, pieces, isPlayer0, isPlayer1 });
       console.log('Lineup:', myLineup);
       console.log('Pieces with traps:', pieces.map((p, i) => `${i}: ${WEAPON_NAMES[p]}`));
       
@@ -306,7 +307,7 @@ export default function GamePage() {
       console.error('Failed to submit lineup:', err);
       toast.error(`Failed to submit lineup: ${err}`);
     }
-  }, [submitCustomLineup, myLineup]);
+  }, [submitCustomLineup, myLineup, isPlayer0, isPlayer1]);
 
   // Handle joining the game
   const handleJoinGame = useCallback(async () => {

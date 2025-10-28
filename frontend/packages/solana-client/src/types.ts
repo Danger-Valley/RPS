@@ -941,6 +941,7 @@ export const Piece = {
   Paper: 2,
   Scissors: 3,
   Flag: 4,
+  Trap: 5,
 } as const;
 export type Piece = (typeof Piece)[keyof typeof Piece];
 
@@ -1019,7 +1020,9 @@ export const printBoard = (owners: Owner[], pieces: Piece[]) => {
         ? 'P'
         : p === Piece.Scissors
         ? 'S'
-        : 'F';
+        : p === Piece.Flag
+        ? 'F'
+        : 'T';
     return o === Owner.P0 ? ` ${base.toLowerCase()} ` : ` ${base} `;
   };
   const rows = board2D(

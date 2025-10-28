@@ -30,6 +30,14 @@ export interface ClusterConfig {
   commitment?: Commitment;
 }
 
+// Shared options for all RPC calls
+const DEFAULT_RPC_OPTS = {
+  skipPreflight: true,
+  preflightCommitment: 'confirmed' as Commitment,
+  commitment: 'confirmed' as Commitment,
+  maxRetries: 0,
+};
+
 export function getDefaultCluster(): ClusterConfig {
   return { rpcUrl: 'https://api.devnet.solana.com', commitment: 'confirmed' };
 }
@@ -98,12 +106,7 @@ export class RpsGameClient {
           payer: this.provider.wallet.publicKey,
           systemProgram: SystemProgram.programId,
         })
-        .rpc({
-          skipPreflight: true, // Enable preflight checks
-          preflightCommitment: 'confirmed',
-          commitment: 'confirmed',
-          maxRetries: 0 // Allow retries
-        });
+        .rpc(DEFAULT_RPC_OPTS);
 
       console.log('Transaction signature:', signature);
       console.log('Game created successfully!');
@@ -153,7 +156,7 @@ export class RpsGameClient {
             game: gamePda,
             joiner: this.provider.wallet.publicKey,
         })
-        .rpc();
+        .rpc(DEFAULT_RPC_OPTS);
     
         console.log('Successfully joined game');
     } catch (err) {
@@ -189,7 +192,7 @@ export class RpsGameClient {
           signer: this.provider.wallet.publicKey,
         },
       })
-      .rpc();
+      .rpc(DEFAULT_RPC_OPTS);
   }
 
   // Submit custom lineup with specific positions and pieces
@@ -213,7 +216,7 @@ export class RpsGameClient {
           signer: this.provider.wallet.publicKey,
         },
       })
-      .rpc();
+      .rpc(DEFAULT_RPC_OPTS);
     
     console.log('Lineup submitted successfully');
   }
@@ -232,7 +235,7 @@ export class RpsGameClient {
         game: gamePda,
         signer: this.provider.wallet.publicKey,
       })
-      .rpc();
+      .rpc(DEFAULT_RPC_OPTS);
   }
 
   // Choose weapon for tie-breaking
@@ -243,7 +246,7 @@ export class RpsGameClient {
         game: gamePda,
         signer: this.provider.wallet.publicKey,
       })
-      .rpc();
+      .rpc(DEFAULT_RPC_OPTS);
   }
 
   // Fetch game state
