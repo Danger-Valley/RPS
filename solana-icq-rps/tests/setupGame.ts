@@ -3,13 +3,7 @@ import { Program } from '@coral-xyz/anchor';
 import { Keypair } from '@solana/web3.js';
 import { SolanaIcqRps } from '../target/types/solana_icq_rps';
 import { airdropIfNeeded } from './pdas';
-import {
-  buildFullLineupWithFlag,
-  decodeGame,
-  printBoard,
-  toIdx,
-  u8,
-} from './cells';
+import { buildFullLineupWithFlag, toIdx, u8 } from './cells';
 const { randomBytes } = require('crypto');
 
 export interface GameSetupReturn {
@@ -49,11 +43,12 @@ export const setupGame = async (): Promise<GameSetupReturn> => {
 
   // lineup p0
   const p0FlagIdx = toIdx(3, 5);
+  const p0TrapIdx = toIdx(2, 4);
   const {
     xs: xs0,
     ys: ys0,
     pcs: pcs0,
-  } = buildFullLineupWithFlag(/* isP0 */ true, p0FlagIdx);
+  } = buildFullLineupWithFlag(/* isP0 */ true, p0FlagIdx, p0TrapIdx);
 
   await program.methods
     .submitLineupXy(u8(xs0), u8(ys0), u8(pcs0))
@@ -66,10 +61,6 @@ export const setupGame = async (): Promise<GameSetupReturn> => {
     .accountsStrict({ game, joiner: p1.publicKey })
     .signers([p1])
     .rpc();
-
-  const g = await program.account.game.fetch(game);
-  const dec = decodeGame(g);
-  printBoard(dec.owners, dec.pieces);
 
   return { program, p0, p1, game };
 };

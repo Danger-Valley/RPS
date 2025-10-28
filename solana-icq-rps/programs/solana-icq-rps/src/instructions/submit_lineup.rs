@@ -83,6 +83,8 @@ fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u
 
     let mut flag_count = 0usize;
     let mut flag_idx: u8 = 0;
+    let mut trap_count: usize = 0;
+    let mut trap_idx: u8 = 0;
 
     for (i, &idx) in positions.iter().enumerate() {
         let p = Piece::from(pieces[i]);
@@ -90,9 +92,24 @@ fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u
             flag_count += 1;
             flag_idx = idx;
         }
+        if p == Piece::Trap {
+            trap_count += 1;
+            trap_idx = idx;
+        }
     }
 
     require!(flag_count == 1, ErrorCode::MustHaveExactlyOneFlag);
+    require!(trap_count <= 1, ErrorCode::TooManyTraps);
+
+    if trap_count == 1 {
+        let trap_y = _y(trap_idx);
+
+        if is_p0 {
+            require!(trap_y == 4 || trap_y == 5, ErrorCode::TrapBadRow);
+        } else {
+            require!(trap_y == 0 || trap_y == 1, ErrorCode::TrapBadRow);
+        }
+    }
 
     for (i, &idx) in positions.iter().enumerate() {
         validate_cell(idx)?;
@@ -112,9 +129,9 @@ fn do_submit_lineup(g: &mut Game, signer: &Signer, positions: &[u8], pieces: &[u
         require!(
             matches!(
                 p,
-                Piece::Rock | Piece::Paper | Piece::Scissors | Piece::Flag
+                Piece::Rock | Piece::Paper | Piece::Scissors | Piece::Flag | Piece::Trap
             ),
-            ErrorCode::OnlyRpsAllowed
+            ErrorCode::OnlyRpsftAllowed
         );
 
         g.board_cells_owner[cell] = if is_p0 {

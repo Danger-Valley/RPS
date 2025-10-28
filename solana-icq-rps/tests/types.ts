@@ -8,6 +8,7 @@ export const Piece = {
   Paper: 2,
   Scissors: 3,
   Flag: 4,
+  Trap: 5,
 } as const;
 export type Piece = (typeof Piece)[keyof typeof Piece];
 

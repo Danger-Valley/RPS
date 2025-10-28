@@ -75,6 +75,7 @@ fn do_move_piece(g: &mut Game, signer: &Signer, from_idx: u8, to_idx: u8) -> Res
 
     let attacker = Piece::from(g.board_pieces[from]);
     require!(attacker != Piece::Empty, ErrorCode::InvalidMove);
+    require!(attacker != Piece::Trap, ErrorCode::InvalidMove);
 
     let dest_owner = BoardCellOwner::from(g.board_cells_owner[to]);
     let defender = Piece::from(g.board_pieces[to]);
@@ -103,6 +104,52 @@ fn do_move_piece(g: &mut Game, signer: &Signer, from_idx: u8, to_idx: u8) -> Res
     }
 
     require!(dest_owner != me_owner, ErrorCode::CannotStackOwnPiece);
+
+    if defender == Piece::Trap {
+        g.board_cells_owner[from] = BoardCellOwner::None as u8;
+        g.board_pieces[from] = Piece::Empty as u8;
+
+        if me_owner == BoardCellOwner::P0 {
+            g.live_player0 = g.live_player0.saturating_sub(1);
+        } else {
+            g.live_player1 = g.live_player1.saturating_sub(1);
+        }
+
+        if attacker == Piece::Flag {
+            let trap_owner_is_p0 = dest_owner == BoardCellOwner::P0;
+            let trap_owner_pubkey = if trap_owner_is_p0 {
+                g.player0
+            } else {
+                g.player1
+            };
+
+            emit!(Battle {
+                from_idx,
+                to_idx,
+                attacker,
+                defender,
+                outcome: -1,
+            });
+
+            return finish(g, trap_owner_pubkey, "flag_walked_into_trap");
+        }
+
+        emit!(Battle {
+            from_idx,
+            to_idx,
+            attacker,
+            defender,
+            outcome: -1,
+        });
+
+        emit!(MoveMade {
+            player: me,
+            from_idx,
+            to_idx,
+        });
+
+        return end_turn_or_win(g, !g.is_player1_turn);
+    }
 
     if defender == Piece::Flag {
         g.board_cells_owner[from] = BoardCellOwner::None as u8;

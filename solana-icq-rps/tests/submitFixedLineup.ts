@@ -13,11 +13,12 @@ export const submitFixedLineup = async (): Promise<GameSetupReturn> => {
 
   // lineup p1
   const p1FlagIdx = toIdx(3, 0);
+  const p1TrapIdx = toIdx(4, 1);
   const {
     xs: xs1,
     ys: ys1,
     pcs: pcs1,
-  } = buildFullLineupWithFlag(/* isP0 */ false, p1FlagIdx);
+  } = buildFullLineupWithFlag(/* isP0 */ false, p1FlagIdx, p1TrapIdx);
 
   await program.methods
     .submitLineupXy(u8(xs1), u8(ys1), u8(pcs1))

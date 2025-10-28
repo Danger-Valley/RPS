@@ -34,8 +34,8 @@ pub enum ErrorCode {
     LineupLengthMismatch,
     #[msg("Lineup positions empty")]
     LineupPositionsEmpty,
-    #[msg("Only R/P/S allowed")]
-    OnlyRpsAllowed,
+    #[msg("Only R/P/S/F/T allowed")]
+    OnlyRpsftAllowed,
     #[msg("Game not active")]
     GameNotActive,
     #[msg("Tie in progress")]
@@ -54,4 +54,8 @@ pub enum ErrorCode {
     Overflow,
     #[msg("You must include exactly one Flag in your lineup")]
     MustHaveExactlyOneFlag,
+    #[msg("You may place at most one Trap")]
+    TooManyTraps,
+    #[msg("Trap must be placed only on the inner spawn row")]
+    TrapBadRow,
 }

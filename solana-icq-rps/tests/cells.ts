@@ -24,15 +24,34 @@ export const padPiecesRPS = (len: number) => {
 export const buildFullLineupWithFlag = (
   isP0: boolean,
   flagIdx: number,
+  trapIdx: number | null,
 ): { xs: number[]; ys: number[]; pcs: number[] } => {
   const baseCells = spawnCells(isP0);
 
-  const otherCells = baseCells.filter((c) => c !== flagIdx);
+  const forcedCells: number[] = [flagIdx];
+  if (trapIdx !== null && trapIdx !== flagIdx) {
+    forcedCells.push(trapIdx);
+  }
+
+  const otherCells = baseCells.filter((c) => !forcedCells.includes(c));
 
   const otherPieces = padPiecesRPS(otherCells.length);
 
-  const allCells = [flagIdx, ...otherCells];
-  const allPieces = [Piece.Flag, ...otherPieces];
+  const allCells: number[] = [];
+  const allPieces: number[] = [];
+
+  allCells.push(flagIdx);
+  allPieces.push(Piece.Flag);
+
+  if (trapIdx !== null && trapIdx !== flagIdx) {
+    allCells.push(trapIdx);
+    allPieces.push(Piece.Trap);
+  }
+
+  for (let i = 0; i < otherCells.length; i++) {
+    allCells.push(otherCells[i]);
+    allPieces.push(otherPieces[i]);
+  }
 
   const xs: number[] = [];
   const ys: number[] = [];
@@ -64,7 +83,11 @@ export const printBoard = (owners: Owner[], pieces: Piece[]) => {
         ? 'P'
         : p === Piece.Scissors
         ? 'S'
-        : 'F';
+        : p === Piece.Flag
+        ? 'F'
+        : p === Piece.Trap
+        ? 'T'
+        : ' . ';
     return o === Owner.P0 ? ` ${base.toLowerCase()} ` : ` ${base} `;
   };
   const rows = board2D(

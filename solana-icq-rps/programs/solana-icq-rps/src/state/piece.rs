@@ -7,6 +7,7 @@ pub enum Piece {
     Paper = 2,
     Scissors = 3,
     Flag = 4,
+    Trap = 5,
 }
 
 impl From<u8> for Piece {
@@ -16,6 +17,7 @@ impl From<u8> for Piece {
             2 => Self::Paper,
             3 => Self::Scissors,
             4 => Self::Flag,
+            5 => Self::Trap,
             _ => Self::Empty,
         }
     }

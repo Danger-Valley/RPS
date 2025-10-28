@@ -43,7 +43,7 @@ impl Game {
     }
 
     pub const SIZE_PLAIN: usize = 196 + 32;
-    
+
     pub const SIZE: usize = 8 + Self::SIZE_PLAIN;
 }
 
