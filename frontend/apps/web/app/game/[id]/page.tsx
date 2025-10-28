@@ -291,11 +291,12 @@ export default function GamePage() {
       // Convert lineup to the format expected by the smart contract
       const xs = myLineup.map(f => f.col);
       const ys = myLineup.map(f => f.row);
-      const pieces = myLineup.map(f => f.weapon || Weapon.None);
+      // For trap pieces, send Weapon.Trap; for others, use their weapon or Weapon.None
+      const pieces = myLineup.map(f => f.isTrap ? Weapon.Trap : (f.weapon || Weapon.None));
       
-      console.log('Submitting lineup (R/P/S only):', { xs, ys, pieces });
-      console.log('Filtered out Flag and Trap');
-      console.log('Дineup:', myLineup);
+      console.log('Submitting lineup:', { xs, ys, pieces });
+      console.log('Lineup:', myLineup);
+      console.log('Pieces with traps:', pieces.map((p, i) => `${i}: ${WEAPON_NAMES[p]}`));
       
       await submitCustomLineup(xs, ys, pieces);
       
@@ -523,8 +524,8 @@ export default function GamePage() {
     );
   }
 
-  // Show loading state
-  if (gameLoading) {
+  // Show loading state only on initial load (when we don't have game state yet)
+  if (gameLoading && !gameState) {
     return (
       <main style={{ 
         display: 'flex', 
@@ -541,8 +542,8 @@ export default function GamePage() {
     );
   }
 
-  // Show error state
-  if (gameError) {
+  // Show error state only if we don't have game state (critical error on initial load)
+  if (gameError && !gameState) {
     return (
       <main style={{ 
         display: 'flex', 

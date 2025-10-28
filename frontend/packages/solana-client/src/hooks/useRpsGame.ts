@@ -231,19 +231,22 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
       console.error('Join game error:', err);
       
       // Handle specific error cases
+      let errorMsg = '';
       if (err instanceof Error) {
         if (err.message.includes('already been processed')) {
-          setError('You have already joined this game');
+          errorMsg = 'You have already joined this game';
         } else if (err.message.includes('already full')) {
-          setError('This game is already full (1)');
+          errorMsg = 'This game is already full';
         } else if (err.message.includes('already in this game')) {
-          setError('You are already in this game');
+          errorMsg = 'You are already in this game';
         } else {
-          setError(`Failed to join game: ${err.message}`);
+          errorMsg = `Failed to join game: ${err.message}`;
         }
       } else {
-        setError(`Failed to join game: ${err}`);
+        errorMsg = `Failed to join game: ${err}`;
       }
+      setError(errorMsg);
+      throw err; // Re-throw the error so the caller can handle it
     } finally {
       setLoading(false);
     }
@@ -251,8 +254,9 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
 
   const placeFlag = useCallback(async (x: number, y: number) => {
     if (!gameClient || !gameState) {
-      setError('Game client not initialized or no game state');
-      return;
+      const error = 'Game client not initialized or no game state';
+      setError(error);
+      throw new Error(error);
     }
     
     setLoading(true);
@@ -262,7 +266,9 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
       await gameClient.placeFlag(gameState.gamePda, x, y);
       await loadGameState();
     } catch (err) {
-      setError(`Failed to place flag: ${err}`);
+      const errorMsg = `Failed to place flag: ${err}`;
+      setError(errorMsg);
+      throw err; // Re-throw the error so the caller can handle it
     } finally {
       setLoading(false);
     }
@@ -270,8 +276,9 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
 
   const submitLineup = useCallback(async (isP0: boolean, flagPos: number) => {
     if (!gameClient || !gameState) {
-      setError('Game client not initialized or no game state');
-      return;
+      const error = 'Game client not initialized or no game state';
+      setError(error);
+      throw new Error(error);
     }
     
     setLoading(true);
@@ -281,7 +288,9 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
       await gameClient.submitLineup(gameState.gamePda, isP0, flagPos);
       await loadGameState();
     } catch (err) {
-      setError(`Failed to submit lineup: ${err}`);
+      const errorMsg = `Failed to submit lineup: ${err}`;
+      setError(errorMsg);
+      throw err; // Re-throw the error so the caller can handle it
     } finally {
       setLoading(false);
     }
@@ -289,8 +298,9 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
 
   const submitCustomLineup = useCallback(async (xs: number[], ys: number[], pieces: number[]) => {
     if (!gameClient || !gameState) {
-      setError('Game client not initialized or no game state');
-      return;
+      const error = 'Game client not initialized or no game state';
+      setError(error);
+      throw new Error(error);
     }
     
     setLoading(true);
@@ -300,7 +310,9 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
       await gameClient.submitCustomLineup(gameState.gamePda, xs, ys, pieces);
       await loadGameState();
     } catch (err) {
-      setError(`Failed to submit custom lineup: ${err}`);
+      const errorMsg = `Failed to submit custom lineup: ${err}`;
+      setError(errorMsg);
+      throw err; // Re-throw the error so the caller can handle it
     } finally {
       setLoading(false);
     }
@@ -308,8 +320,9 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
 
   const movePiece = useCallback(async (fromX: number, fromY: number, toX: number, toY: number) => {
     if (!gameClient || !gameState) {
-      setError('Game client not initialized or no game state');
-      return;
+      const error = 'Game client not initialized or no game state';
+      setError(error);
+      throw new Error(error);
     }
     
     setLoading(true);
@@ -319,7 +332,9 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
       await gameClient.movePiece(gameState.gamePda, fromX, fromY, toX, toY);
       await loadGameState();
     } catch (err) {
-      setError(`Failed to move piece: ${err}`);
+      const errorMsg = `Failed to move piece: ${err}`;
+      setError(errorMsg);
+      throw err; // Re-throw the error so the caller can handle it
     } finally {
       setLoading(false);
     }
@@ -327,8 +342,9 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
 
   const chooseWeapon = useCallback(async (choice: Choice) => {
     if (!gameClient || !gameState) {
-      setError('Game client not initialized or no game state');
-      return;
+      const error = 'Game client not initialized or no game state';
+      setError(error);
+      throw new Error(error);
     }
     
     setLoading(true);
@@ -338,7 +354,9 @@ export function useRpsGame(gamePda?: string): UseRpsGameReturn {
       await gameClient.chooseWeapon(gameState.gamePda, choice);
       await loadGameState();
     } catch (err) {
-      setError(`Failed to choose weapon: ${err}`);
+      const errorMsg = `Failed to choose weapon: ${err}`;
+      setError(errorMsg);
+      throw err; // Re-throw the error so the caller can handle it
     } finally {
       setLoading(false);
     }
