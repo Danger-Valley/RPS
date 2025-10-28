@@ -310,6 +310,7 @@ export default function GamePageSmartContract() {
 
   useEffect(() => {
     handleGamePhase();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState?.phase, connected, isPlayer0, publicKey]);
 
   // Show loading state

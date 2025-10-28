@@ -13,11 +13,13 @@ const WEAPON_IMAGES = {
   [Weapon.Scissors]: '/scissors.png'
 };
 
-const WEAPON_NAMES = {
+const WEAPON_NAMES: Record<Weapon, string> = {
   [Weapon.None]: 'None',
   [Weapon.Stone]: 'Rock',
   [Weapon.Paper]: 'Paper',
-  [Weapon.Scissors]: 'Scissors'
+  [Weapon.Scissors]: 'Scissors',
+  [Weapon.Flag]: 'Flag',
+  [Weapon.Trap]: 'Trap'
 };
 
 export default function WeaponSelectionPopup({ isOpen, onWeaponSelect, onClose }: WeaponSelectionPopupProps) {
@@ -96,6 +98,7 @@ export default function WeaponSelectionPopup({ isOpen, onWeaponSelect, onClose }
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imagePath}
                   alt={WEAPON_NAMES[weapon]}

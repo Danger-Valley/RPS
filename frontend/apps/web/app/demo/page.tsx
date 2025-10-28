@@ -103,7 +103,7 @@ export default function DemoPage() {
             <h2 style={{ color: '#66fcf1', marginTop: 0 }}>Step 2: Create Game</h2>
             <p style={{ color: '#c5c6c7', marginBottom: '20px' }}>
               Click the button below to create a new game on the blockchain. 
-              This will send a transaction that you'll need to sign with your wallet.
+              This will send a transaction that you&apos;ll need to sign with your wallet.
             </p>
             
             <div style={{ textAlign: 'center' }}>

@@ -40,6 +40,7 @@ export default function SmartContractIntegration({
       initializeGame();
       setIsInitialized(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, publicKey, isInitialized]);
 
   const initializeGame = async () => {
@@ -212,6 +213,7 @@ export default function SmartContractIntegration({
         }
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState, loading, error, smartContractActions]);
 
   // Show loading state
