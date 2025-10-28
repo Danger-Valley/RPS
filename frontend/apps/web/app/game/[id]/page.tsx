@@ -22,6 +22,7 @@ interface Figure {
   animX?: number;
   animY?: number;
   isOpponentPlaceholder?: boolean; // Add for debugging
+  isTrap?: boolean; // Add to indicate if this is a trap piece
 }
 
 // Game constants
@@ -141,13 +142,15 @@ export default function GamePage() {
       if (index < shuffledCells.length) {
         const cell = shuffledCells[index];
         if (cell) {
+          const isTrapPiece = weapon === Weapon.Trap;
           lineup.push({
             id: `lineup-${index}`,
             row: cell.row,
             col: cell.col,
-            weapon,
+            weapon: isTrapPiece ? undefined : weapon, // Don't set weapon for trap
             isMyFigure: true,
-            isAlive: true
+            isAlive: true,
+            isTrap: isTrapPiece // Mark as trap piece
           });
         }
       }
@@ -290,8 +293,9 @@ export default function GamePage() {
       const ys = myLineup.map(f => f.row);
       const pieces = myLineup.map(f => f.weapon || Weapon.None);
       
-      console.log('Submitting lineup:', { xs, ys, pieces });
-      console.log('Lineup details:', myLineup);
+      console.log('Submitting lineup (R/P/S only):', { xs, ys, pieces });
+      console.log('Filtered out Flag and Trap');
+      console.log('Дineup:', myLineup);
       
       await submitCustomLineup(xs, ys, pieces);
       
@@ -805,7 +809,15 @@ export default function GamePage() {
     }
     
     // If clicking on one of my figures, select it and show available moves
+    // BUT: Don't allow selecting trap pieces
     if (figure && figure.isMyFigure) {
+      // Prevent selecting trap pieces
+      if (figure.isTrap) {
+        console.log('Cannot select trap piece - traps are not movable');
+        toast.info('Traps cannot be moved');
+        return;
+      }
+      
       const moves = getAvailableMoves(figure);
       setSelectedFigure(figure);
       setAvailableMoves(moves);
@@ -1200,7 +1212,7 @@ export default function GamePage() {
                   border: '1px solid #2b3a44',
                   background: i % 2 === 0 ? '#11171c' : '#0e1419',
                   position: 'relative',
-                  cursor: figure?.isMyFigure || availableMove ? 'pointer' : 'default',
+                  cursor: figure?.isTrap ? 'not-allowed' : (figure?.isMyFigure || availableMove ? 'pointer' : 'default'),
                   borderColor: isSelected ? '#66fcf1' : '#2b3a44',
                   borderWidth: isSelected ? '2px' : '1px'
                 }}
@@ -1256,6 +1268,7 @@ export default function GamePage() {
                 }}
               >
                   <RpsFigure
+                    key={`${figure.id}-${figure.isTrap ? 'trap' : 'normal'}`}
                     riveFile={riveFile as any}
                     weapon={figure.weapon}
                     trigger={
@@ -1267,6 +1280,7 @@ export default function GamePage() {
                       undefined
                     }
                     isMyFigure={figure.isMyFigure}
+                    isTrap={figure.isTrap}
                     style={{ 
                       width: `${figureSize}px`, 
                       height: `${figureSize}px`, 

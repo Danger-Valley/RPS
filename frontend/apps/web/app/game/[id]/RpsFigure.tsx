@@ -32,6 +32,7 @@ export interface RpsFigureProps {
   style?: CSSProperties;
   isMyFigure?: boolean; // true for my figures, false for opponent figures
   riveFile?: any; // shared rive file instance
+  isTrap?: boolean; // true if this is a trap piece
 }
 
  const MACHINE_NAMES = ['State Machine Back', 'State Machine Front'] as const;
@@ -62,7 +63,8 @@ export default function RpsFigure({
   trigger = undefined,
   style,
   isMyFigure = true,
-  riveFile
+  riveFile,
+  isTrap = false
 }: RpsFigureProps) {
   // Choose state machine based on figure ownership
   // My figures use Back state machine, opponent figures use Front state machine
@@ -130,6 +132,40 @@ export default function RpsFigure({
       console.log('[RpsFigure] Rendering opponent piece with Front state machine');
     }
   }, [isMyFigure]);
+
+  // Auto-trigger "Trap Idle" for trap pieces (only for my figures)
+  useEffect(() => {
+    if (!rive || !isMyFigure) return;
+    
+    if (isTrap) {
+      // Trigger Trap Idle animation
+      console.log('[Rive] Auto-triggering Trap Idle for trap piece');
+      try {
+        const inputs = (rive.stateMachineInputs?.(stateMachine) ?? []) as any[];
+        const trapIdleTrigger = inputs.find((i: any) => i?.name === 'Trap Idle' && typeof i?.fire === 'function');
+        if (trapIdleTrigger) {
+          trapIdleTrigger.fire();
+          console.log('[Rive] Trap Idle triggered successfully');
+        }
+      } catch (e) {
+        console.error('[Rive] Trap Idle trigger error:', e);
+      }
+    } else {
+      // Reset to normal idle when no longer a trap
+      console.log('[Rive] Resetting from Trap Idle to normal idle');
+      try {
+        // Reset the state machine to go back to normal idle
+        const inputs = (rive.stateMachineInputs?.(stateMachine) ?? []) as any[];
+        // Find and fire the WeaponVisible input to reset
+        const weaponVisibleInput = inputs.find((i: any) => i?.name === 'WeaponVisible');
+        if (weaponVisibleInput && 'value' in weaponVisibleInput) {
+          weaponVisibleInput.value = true; // Show weapon to exit trap state
+        }
+      } catch (e) {
+        console.error('[Rive] Reset from Trap Idle error:', e);
+      }
+    }
+  }, [rive, isTrap, isMyFigure, stateMachine]);
 
   return (
     <RiveComponent 
