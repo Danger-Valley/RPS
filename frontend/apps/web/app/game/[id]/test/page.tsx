@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 export default function TestPage() {
   const { connected, publicKey } = useWallet();
   const { id } = useParams<{ id: string }>();
-  const gameId = parseInt(id as string, 10);
+  const gamePda = id as string;
   const [testResults, setTestResults] = useState<string[]>([]);
   
   const { 
@@ -17,7 +17,7 @@ export default function TestPage() {
     createGame, 
     joinGame,
     refreshGameState 
-  } = useRpsGame(gameId);
+  } = useRpsGame(gamePda);
 
   const addTestResult = (result: string) => {
     setTestResults(prev => [...prev, `${new Date().toLocaleTimeString()}: ${result}`]);
@@ -45,7 +45,7 @@ export default function TestPage() {
     
     if (gameState) {
       addTestResult('✅ Game state loaded');
-      addTestResult(`Game ID: ${gameState.gameId}`);
+      addTestResult(`Game PDA: ${gameState.gamePda}`);
       addTestResult(`Phase: ${gameState.phase}`);
       addTestResult(`Player 0: ${gameState.p0}`);
       addTestResult(`Player 1: ${gameState.p1}`);
@@ -57,7 +57,7 @@ export default function TestPage() {
     try {
       addTestResult('🔄 Testing game creation...');
       const result = await createGame();
-      addTestResult(`✅ Game created successfully! ID: ${result.gameId}`);
+      addTestResult(`✅ Game created successfully! PDA: ${result.gamePda}`);
     } catch (err) {
       addTestResult(`❌ Failed to create game: ${err}`);
     }
@@ -93,7 +93,7 @@ export default function TestPage() {
         <br />
         Error: {error || 'None'}
         <br />
-        Game ID: {gameId}
+        Game PDA: {gamePda}
       </div>
       
       <div style={{ marginBottom: '20px' }}>

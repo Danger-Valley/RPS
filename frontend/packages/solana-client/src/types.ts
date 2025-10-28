@@ -1023,10 +1023,13 @@ export const printBoard = (owners: Owner[], pieces: Piece[]) => {
     return o === Owner.P0 ? ` ${base.toLowerCase()} ` : ` ${base} `;
   };
   const rows = board2D(
-    [...Array(CELLS).keys()].map((i) => sym(owners[i], pieces[i])),
+    [...Array(CELLS).keys()].map((i) => sym(owners[i] ?? Owner.None, pieces[i] ?? Piece.Rock)),
   );
   console.log('\nBoard (y=0 top):');
-  for (let y = 0; y < HEIGHT; y++) console.log(rows[y].join(''));
+  for (let y = 0; y < HEIGHT; y++) {
+    const row = rows[y];
+    if (row) console.log(row.join(''));
+  }
 };
 
 export const printGameBoard = printBoard;

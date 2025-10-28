@@ -10,11 +10,11 @@ export default function DemoPage() {
   const { connected, publicKey } = useWallet();
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [gameId, setGameId] = useState<number | null>(null);
+  const [gamePda, setGamePda] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   
   // Initialize smart contract integration
-  const { createGame, loading, error } = useRpsGame(0);
+  const { createGame, loading, error } = useRpsGame();
 
   const handleCreateGame = async () => {
     if (!connected || !publicKey) {
@@ -26,10 +26,10 @@ export default function DemoPage() {
     toast.loading('Creating game on blockchain...', { id: 'create-game' });
 
     try {
-      const { gameId: newGameId } = await createGame();
-      setGameId(newGameId);
+      const { gamePda: newGamePda } = await createGame();
+      setGamePda(newGamePda);
       setStep(2);
-      toast.success(`Game created! ID: ${newGameId}`, { id: 'create-game' });
+      toast.success(`Game created! PDA: ${newGamePda}`, { id: 'create-game' });
     } catch (err) {
       console.error('Failed to create game:', err);
       toast.error(`Failed to create game: ${err}`, { id: 'create-game' });
@@ -39,8 +39,8 @@ export default function DemoPage() {
   };
 
   const handleJoinGame = () => {
-    if (gameId) {
-      router.push(`/game/${gameId}`);
+    if (gamePda) {
+      router.push(`/game/${gamePda}`);
     }
   };
 
@@ -155,7 +155,7 @@ export default function DemoPage() {
           </div>
         )}
 
-        {gameId && (
+        {gamePda && (
           <div style={{
             background: '#0e1419',
             border: '1px solid #2b3a44',
@@ -165,7 +165,7 @@ export default function DemoPage() {
           }}>
             <h2 style={{ color: '#66fcf1', marginTop: 0 }}>Step 3: Game Created!</h2>
             <p style={{ color: '#c5c6c7', marginBottom: '20px' }}>
-              Your game has been created on the blockchain! Game ID: <strong>{gameId}</strong>
+              Your game has been created on the blockchain! Game PDA: <strong>{gamePda}</strong>
             </p>
             
             <div style={{
@@ -180,7 +180,7 @@ export default function DemoPage() {
                 <li>✅ Smart contract transaction sent to Solana blockchain</li>
                 <li>✅ You signed the transaction with your wallet</li>
                 <li>✅ Game state stored on-chain</li>
-                <li>✅ Game ID generated: {gameId}</li>
+                <li>✅ Game PDA generated: {gamePda}</li>
               </ul>
             </div>
 
@@ -204,8 +204,8 @@ export default function DemoPage() {
               
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(gameId.toString());
-                  toast.success('Game ID copied to clipboard!');
+                  navigator.clipboard.writeText(gamePda);
+                  toast.success('Game PDA copied to clipboard!');
                 }}
                 style={{
                   padding: '15px 30px',
@@ -218,7 +218,7 @@ export default function DemoPage() {
                   fontSize: '16px'
                 }}
               >
-                Copy Game ID
+                Copy Game PDA
               </button>
             </div>
           </div>

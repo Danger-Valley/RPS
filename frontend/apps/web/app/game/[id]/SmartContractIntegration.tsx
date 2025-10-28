@@ -4,12 +4,12 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useRpsGame, Phase, Choice, Piece, Owner, toIdx, toXY } from '@rps/solana-client';
 
 interface SmartContractIntegrationProps {
-  gameId: number;
+  gamePda: string;
   onGameStateUpdate?: (gameState: any) => void;
 }
 
 export default function SmartContractIntegration({ 
-  gameId, 
+  gamePda, 
   onGameStateUpdate 
 }: SmartContractIntegrationProps) {
   const { connected, publicKey } = useWallet();
@@ -32,7 +32,7 @@ export default function SmartContractIntegration({
     isPlayer0,
     isPlayer1,
     isMyTurn,
-  } = useRpsGame(gameId);
+  } = useRpsGame(gamePda);
 
   // Initialize game when component mounts
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function SmartContractIntegration({
     if (!gameState) {
       // Try to join existing game or create new one
       try {
-        await joinGame(gameId);
+        await joinGame(gamePda);
       } catch (err) {
         console.log('Game not found, creating new game...');
         await createGame();

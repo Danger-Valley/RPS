@@ -163,16 +163,10 @@ export class RpsGameClient {
   }
 
   // Place flag at specific coordinates
+  // NOTE: There's no separate place_flag instruction in the smart contract.
+  // Flag position should be included in the lineup submission.
   async placeFlag(gamePda: PublicKey, x: number, y: number): Promise<void> {
-    await this.program.methods
-      .placeFlagXy(x, y)
-      .accountsStrict({
-        inner: {
-          game: gamePda,
-          signer: this.provider.wallet.publicKey,
-        },
-      })
-      .rpc();
+    throw new Error('placeFlag is not implemented. Use submitLineup or submitCustomLineup instead.');
   }
 
   // Submit lineup with XY coordinates
@@ -261,7 +255,7 @@ export class RpsGameClient {
   // Print current board state
   async printGameBoard(gamePda: PublicKey) {
     const gameState = await this.getGameState(gamePda);
-    printGameBoard(gameState);
+    printGameBoard(gameState.owners, gameState.pieces);
     return gameState;
   }
 

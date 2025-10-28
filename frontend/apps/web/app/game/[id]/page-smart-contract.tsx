@@ -30,8 +30,8 @@ export default function GamePageSmartContract() {
   const { id } = useParams<{ id: string }>();
   const { connected, publicKey } = useWallet();
   
-  // Parse game ID from URL
-  const gameId = parseInt(id as string, 10);
+  // Use game PDA from URL (id is the game's Public Derived Address)
+  const gamePda = id as string;
   
   // Initialize smart contract integration
   const {
@@ -51,7 +51,7 @@ export default function GamePageSmartContract() {
     isPlayer0,
     isPlayer1,
     isMyTurn,
-  } = useRpsGame(gameId);
+  } = useRpsGame(gamePda);
 
   const rows = 6;
   const cols = 7;
@@ -287,7 +287,7 @@ export default function GamePageSmartContract() {
         // Auto-join if not player0
         if (!isPlayer0 && publicKey) {
           try {
-            await joinGame(gameId);
+            await joinGame(gamePda);
           } catch (err) {
             console.error('Failed to join game:', err);
           }
@@ -361,7 +361,7 @@ export default function GamePageSmartContract() {
       fontFamily: 'system-ui, sans-serif'
     }}>
       <section>
-        <h2 style={{ color: '#66fcf1', marginTop: 0 }}>Game #{gameId}</h2>
+        <h2 style={{ color: '#66fcf1', marginTop: 0 }}>Game PDA: {gamePda}</h2>
         <div
           ref={setBoardRef}
           style={{

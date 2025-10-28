@@ -28,7 +28,7 @@ export default function GamePageWithSmartContract() {
   // Load shared Rive file once and share across all figures
   const { riveFile, status: riveStatus } = useRiveFile({ src: '/figures/fig1.riv' });
   const { id } = useParams<{ id: string }>();
-  const gameId = parseInt(id as string, 10);
+  const gamePda = id as string;
   
   const rows = 6;
   const cols = 7;
@@ -321,7 +321,7 @@ export default function GamePageWithSmartContract() {
       fontFamily: 'system-ui, sans-serif'
     }}>
       <section>
-        <h2 style={{ color: '#66fcf1', marginTop: 0 }}>Game #{gameId}</h2>
+        <h2 style={{ color: '#66fcf1', marginTop: 0 }}>Game PDA: {gamePda}</h2>
         <div
           ref={setBoardRef}
           style={{
@@ -461,7 +461,7 @@ export default function GamePageWithSmartContract() {
       
       {/* Smart Contract Integration Component */}
       <SmartContractIntegration 
-        gameId={gameId} 
+        gamePda={gamePda} 
         onGameStateUpdate={handleGameStateUpdate}
       />
     </main>
