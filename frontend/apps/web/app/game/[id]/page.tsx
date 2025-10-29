@@ -1130,7 +1130,7 @@ export default function GamePage() {
       setTimeout(() => {
         setDyingFigures([loser.id]);
 
-      }, attackTimeMs);
+      }, attackTimeMs+100);
     }, 400);
     
     // Reset attack state and resolve combat after total animation duration
@@ -1147,7 +1147,7 @@ export default function GamePage() {
       setTimeout(() => {
         setDyingFigures([]);
       }, 400);
-    }, 400+200+attackTimeMs); // Total attack animation duration (200ms earlier)
+    }, 400 + 200 + attackTimeMs + 100); // keep ~200ms window after death starts
   };
 
   const resolveCombatWithWinner = (attacker: Figure, target: Figure, winner: Figure) => {
@@ -1186,14 +1186,14 @@ export default function GamePage() {
               animX: currentX,
               animY: currentY
             };
-          } else if (f.id === target.id) {
-            // Target disappears (set as not alive)
-            console.log('Target dies:', f.id);
-            return { ...f, isAlive: false };
           }
           return f;
         })
       );
+      // Delay loser removal to allow death animation to play
+      setTimeout(() => {
+        setFigures(prev => prev.map(g => g.id === target.id ? { ...g, isAlive: false } : g));
+      }, 500);
       
       // Animate movement to target position
       const startTime = Date.now();
@@ -1241,16 +1241,10 @@ export default function GamePage() {
       requestAnimationFrame(animate);
     } else {
       // Target wins: target stays in place, attacker disappears
-      setFigures(prevFigures => 
-        prevFigures.map(f => {
-          if (f.id === attacker.id) {
-            // Attacker disappears
-            console.log('Attacker dies:', f.id);
-            return { ...f, isAlive: false };
-          }
-          return f;
-        })
-      );
+      // Delay loser removal to allow death animation to play
+      setTimeout(() => {
+        setFigures(prev => prev.map(g => g.id === attacker.id ? { ...g, isAlive: false } : g));
+      }, 500);
     }
   };
 
@@ -1356,12 +1350,18 @@ export default function GamePage() {
                     riveFile={riveFile as any}
                     weapon={figure.weapon}
                     trigger={
-                      isAnimating ? jumpDirection : 
-                      attackingFigures.includes(figure.id) ? 
-                        (attackPhase === 'prepare' ? 'Attack Prepare' : 
-                         dyingFigures.includes(figure.id) ? 'Death' :
-                         winningFigure === figure.id ? 'Attack' : 'Death') : 
-                      undefined
+                      isAnimating ? jumpDirection :
+                      attackingFigures.includes(figure.id)
+                        ? (
+                            attackPhase === 'prepare'
+                              ? 'Attack Prepare'
+                              : dyingFigures.includes(figure.id)
+                                ? 'Death'
+                                : winningFigure === figure.id
+                                  ? 'Attack'
+                                  : undefined
+                          )
+                        : undefined
                     }
                     isMyFigure={figure.isMyFigure}
                     isTrap={figure.isTrap}
