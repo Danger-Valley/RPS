@@ -1101,12 +1101,6 @@ export default function GamePage() {
     const attackerFinalX = centerX - DISTANCE_BETWEEN_FIGURES_DURING_ATTACK;
     const targetFinalX = centerX + DISTANCE_BETWEEN_FIGURES_DURING_ATTACK;
     
-    // Set attack positions (both figures move to center with distance)
-    setAttackPositions({
-      [attacker.id]: { x: attackerFinalX, y: centerY },
-      [target.id]: { x: targetFinalX, y: centerY }
-    });
-    
     // Set both figures as attacking
     setAttackingFigures([attacker.id, target.id]);
     
@@ -1117,6 +1111,13 @@ export default function GamePage() {
     
     // Start with "Attack Prepare" phase
     setAttackPhase('prepare');
+    // Move to attack positions 100ms after prepare
+    setTimeout(() => {
+      setAttackPositions({
+        [attacker.id]: { x: attackerFinalX, y: centerY },
+        [target.id]: { x: targetFinalX, y: centerY }
+      });
+    }, 100);
     
     //TODO: if opponent wins, winner.weapon = 0. So I have to fetch it somehow.
     console.log('Winner weapon:', WEAPON_NAMES[winner.weapon || Weapon.None]);
@@ -1341,7 +1342,7 @@ export default function GamePage() {
                   top: y,
                   transform: 'translate(-50%, -50%)',
                   pointerEvents: 'none',
-                  zIndex: attackingFigures.includes(figure.id) ? 20 : 5,
+                  zIndex: (winningFigure === figure.id) ? 30 : (attackingFigures.includes(figure.id) ? 20 : 5),
                   transition: attackPos ? 'left 0.3s ease-in-out, top 0.3s ease-in-out' : 'none'
                 }}
               >
