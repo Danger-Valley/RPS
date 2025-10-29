@@ -387,9 +387,9 @@ export default function GamePage() {
     }
   }, [gameState, isAuthorized, isPlayer0, isPlayer1, myLineup.length, generateRandomLineup, generateOpponentLineup, isSettingLineup]);
 
-  // Update figures when game state changes
+  // Update figures when game state changes (render from on-chain lineup)
   useEffect(() => {
-    if (gameState && isAuthorized) {
+    if (gameState) {
       const newFigures: Figure[] = [];
       let figureId = 0;
       
@@ -405,13 +405,16 @@ export default function GamePage() {
         
         // Only create figure if it's owned by someone
         if (owner !== 0) { // 0 = None in Owner enum
+          const isTrapPiece = (piece as number) === Weapon.Trap;
           newFigures.push({
             id: `figure-${figureId++}`,
             row,
             col,
-            weapon: piece as Weapon, // Convert Piece enum to Weapon
+            // Hide weapon for trap pieces (trap has its own animation), show otherwise
+            weapon: isTrapPiece ? undefined : (piece as Weapon),
             isMyFigure,
-            isAlive: true
+            isAlive: true,
+            isTrap: isTrapPiece
           });
         }
       }
@@ -428,7 +431,7 @@ export default function GamePage() {
       
       setFigures(newFigures);
     }
-  }, [gameState, isAuthorized, isPlayer0, isPlayer1, isSettingLineup, opponentLineup]);
+  }, [gameState, isPlayer0, isPlayer1, isSettingLineup, opponentLineup]);
 
   // Debug when opponentLineup changes
   useEffect(() => {
@@ -519,6 +522,85 @@ export default function GamePage() {
           </div>
           <div style={{ color: '#8a9ba8', fontSize: 14 }}>
             Game ID must be a positive number
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Show "waiting for opponent" screen when you're in the game and the other slot is empty
+  if (
+    isAuthorized &&
+    gameState &&
+    (
+      (isPlayer0 && isEmptyAddress(String(gameState.p1 || ''))) ||
+      (isPlayer1 && isEmptyAddress(String(gameState.p0 || '')))
+    ) &&
+    (gameState.phase === 0 || gameState.phase === 1)
+  ) {
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+    return (
+      <main style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        fontFamily: 'system-ui, sans-serif',
+        background: 'linear-gradient(135deg, #0e1419 0%, #11171c 100%)'
+      }}>
+        <div style={{ 
+          textAlign: 'center',
+          background: '#0e1419',
+          border: '1px solid #2b3a44',
+          borderRadius: '12px',
+          padding: '48px',
+          maxWidth: '560px',
+          width: '90%'
+        }}>
+          <div style={{ fontSize: 28, color: '#66fcf1', marginBottom: 16, fontWeight: 'bold' }}>
+            Waiting for the opponent to join
+          </div>
+          <div style={{ color: '#c5c6c7', marginBottom: 24, fontSize: 16, lineHeight: 1.5 }}>
+            Share the link with your friend to invite them to this game.
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+            <input
+              readOnly
+              value={shareUrl}
+              style={{
+                flex: 1,
+                background: '#0b1116',
+                color: '#c5c6c7',
+                border: '1px solid #2b3a44',
+                borderRadius: 8,
+                padding: '12px',
+                fontSize: 14
+              }}
+            />
+            <button
+              onClick={() => {
+                if (shareUrl) {
+                  navigator.clipboard.writeText(shareUrl);
+                  toast.success('Link copied to clipboard');
+                }
+              }}
+              style={{
+                background: '#66fcf1',
+                color: '#0e1419',
+                border: 'none',
+                padding: '12px 16px',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 'bold'
+              }}
+            >
+              Copy Link
+            </button>
+          </div>
+          <div style={{ color: '#8a9ba8', fontSize: 12 }}>
+            Game PDA: {gamePda.slice(0, 8)}...
           </div>
         </div>
       </main>
@@ -1286,7 +1368,7 @@ export default function GamePage() {
                     style={{ 
                       width: `${figureSize}px`, 
                       height: `${figureSize}px`, 
-                      transform: `scale(${scaledFigures.includes(figure.id) ? figureScale * 2 : figureScale})`, 
+                      transform: `${(isPlayer1 && !figure.isMyFigure) ? 'scaleX(-1) ' : ''}scale(${scaledFigures.includes(figure.id) ? figureScale * 2 : figureScale})`, 
                       transformOrigin: 'center center',
                       transition: scaledFigures.includes(figure.id) ? 'transform 0.3s ease-in-out' : 'none'
                     }}
