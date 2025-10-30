@@ -93,6 +93,116 @@ export default function GamePage() {
   const [showWeaponPopup, setShowWeaponPopup] = useState(false);
   const [pendingAttack, setPendingAttack] = useState<{attacker: Figure, target: Figure} | null>(null);
 
+  // Demo mode: disable smart contract integration and alternate turns locally
+  const DEMO_MODE = true;
+  const [isMyTurnLocal, setIsMyTurnLocal] = useState(true);
+
+  // Helper: randomize full demo lineup for both sides
+  const randomizeDemoLineup = () => {
+    const myPieces = [
+      ...Array(4).fill(Weapon.Stone),
+      ...Array(4).fill(Weapon.Paper),
+      ...Array(4).fill(Weapon.Scissors),
+      Weapon.Flag,
+      Weapon.Trap
+    ];
+    const oppPieces = [
+      ...Array(4).fill(Weapon.Stone),
+      ...Array(4).fill(Weapon.Paper),
+      ...Array(4).fill(Weapon.Scissors),
+      Weapon.Flag,
+      Weapon.Trap
+    ];
+    const shuffle = <T,>(arr: T[]) => arr.slice().sort(() => Math.random() - 0.5);
+    const myCells = shuffle(Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7) + 4, col: i % 7})));
+    const oppCells = shuffle(Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7), col: i % 7})));
+    let idCounter = 0;
+    const newFigures: Figure[] = [];
+    shuffle(myPieces).forEach((piece, idx) => {
+      const cell = myCells[idx];
+      if (!cell) return;
+      const isTrap = piece === Weapon.Trap;
+      newFigures.push({
+        id: `my-${idCounter++}`,
+        row: cell.row,
+        col: cell.col,
+        weapon: isTrap ? undefined : piece,
+        isMyFigure: true,
+        isAlive: true,
+        isTrap
+      });
+    });
+    shuffle(oppPieces).forEach((piece, idx) => {
+      const cell = oppCells[idx];
+      if (!cell) return;
+      const isTrap = piece === Weapon.Trap;
+      newFigures.push({
+        id: `opp-${idCounter++}`,
+        row: cell.row,
+        col: cell.col,
+        weapon: isTrap ? undefined : piece,
+        isMyFigure: false,
+        isAlive: true,
+        isTrap
+      });
+    });
+    setFigures(newFigures);
+  };
+
+  // Initialize local demo board with both sides' figures
+  useEffect(() => {
+    if (!DEMO_MODE) return;
+    const myPieces = [
+      ...Array(4).fill(Weapon.Stone),
+      ...Array(4).fill(Weapon.Paper),
+      ...Array(4).fill(Weapon.Scissors),
+      Weapon.Flag,
+      Weapon.Trap
+    ];
+    const oppPieces = [
+      ...Array(4).fill(Weapon.Stone),
+      ...Array(4).fill(Weapon.Paper),
+      ...Array(4).fill(Weapon.Scissors),
+      Weapon.Flag,
+      Weapon.Trap
+    ];
+    const shuffle = <T,>(arr: T[]) => arr.slice().sort(() => Math.random() - 0.5);
+    const myCells = shuffle(Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7) + 4, col: i % 7})));
+    const oppCells = shuffle(Array.from({length: 14}, (_, i) => ({row: Math.floor(i / 7), col: i % 7})));
+    let idCounter = 0;
+    const newFigures: Figure[] = [];
+    shuffle(myPieces).forEach((piece, idx) => {
+      const cell = myCells[idx];
+      if (!cell) return;
+      const isTrap = piece === Weapon.Trap;
+      newFigures.push({
+        id: `my-${idCounter++}`,
+        row: cell.row,
+        col: cell.col,
+        weapon: isTrap ? undefined : piece,
+        isMyFigure: true,
+        isAlive: true,
+        isTrap
+      });
+    });
+    shuffle(oppPieces).forEach((piece, idx) => {
+      const cell = oppCells[idx];
+      if (!cell) return;
+      const isTrap = piece === Weapon.Trap;
+      newFigures.push({
+        id: `opp-${idCounter++}`,
+        row: cell.row,
+        col: cell.col,
+        weapon: isTrap ? undefined : piece,
+        isMyFigure: false,
+        isAlive: true,
+        isTrap
+      });
+    });
+    setFigures(newFigures);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Generate random lineup (4 stones, 4 paper, 4 scissors, 1 flag, 1 trap)
   const generateRandomLineup = useCallback(() => {
     // Safety check
@@ -496,7 +606,7 @@ export default function GamePage() {
   }, [gameState, publicKey]);
 
   // Validate game ID
-  if (!gamePda) {
+  if (!DEMO_MODE && !gamePda) {
     return (
       <main style={{ 
         display: 'flex', 
@@ -530,7 +640,7 @@ export default function GamePage() {
   }
 
   // Show "waiting for opponent" screen when you're in the game and the other slot is empty
-  if (
+  if (!DEMO_MODE && (
     isAuthorized &&
     gameState &&
     (
@@ -538,7 +648,7 @@ export default function GamePage() {
       (isPlayer1 && isEmptyAddress(String(gameState.p0 || '')))
     ) &&
     (gameState.phase === 0 || gameState.phase === 1)
-  ) {
+  )) {
     const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
     return (
       <main style={{ 
@@ -609,7 +719,7 @@ export default function GamePage() {
   }
 
   // Show loading state only on initial load (when we don't have game state yet)
-  if (gameLoading && !gameState) {
+  if (!DEMO_MODE && gameLoading && !gameState) {
     return (
       <main style={{ 
         display: 'flex', 
@@ -627,7 +737,7 @@ export default function GamePage() {
   }
 
   // Show error state only if we don't have game state (critical error on initial load)
-  if (gameError && !gameState) {
+  if (!DEMO_MODE && gameError && !gameState) {
     return (
       <main style={{ 
         display: 'flex', 
@@ -659,7 +769,7 @@ export default function GamePage() {
   }
 
   // Show join game screen
-  if (canJoinGame) {
+  if (!DEMO_MODE && canJoinGame) {
     return (
       <main style={{ 
         display: 'flex', 
@@ -722,7 +832,7 @@ export default function GamePage() {
   }
 
   // Show authorization error
-  if (authorizationError) {
+  if (!DEMO_MODE && authorizationError) {
     return (
       <main style={{ 
         display: 'flex', 
@@ -743,7 +853,7 @@ export default function GamePage() {
   }
 
   // Show wallet connection prompt
-  if (!connected) {
+  if (!DEMO_MODE && !connected) {
     return (
       <main style={{ 
         display: 'flex', 
@@ -893,39 +1003,28 @@ export default function GamePage() {
       return;
     }
     
-    // If clicking on one of my figures, select it and show available moves
-    // BUT: Don't allow selecting trap pieces or when it's not my turn
-    if (figure && figure.isMyFigure) {
-      if (!isMyTurn) {
-        toast.info('Wait for your turn');
-        return;
-      }
+    // Select a figure if it's the current side's turn (demo) or my figure (on-chain)
+    if (figure && ((DEMO_MODE && figure.isMyFigure === isMyTurnLocal) || (!DEMO_MODE && figure.isMyFigure))) {
       // Prevent selecting trap pieces
       if (figure.isTrap) {
-        console.log('Cannot select trap piece - traps are not movable');
-        toast.info('Traps cannot be moved');
         return;
       }
-      
       const moves = getAvailableMoves(figure);
       setSelectedFigure(figure);
       setAvailableMoves(moves);
-      console.log('Selected figure:', figure.id, 'Available moves:', moves);
       return;
     }
     
-    // If clicking on an opponent figure and I have a selected figure, check if it's adjacent
-    if (selectedFigure && figure && !figure.isMyFigure) {
-      if (!isMyTurn) {
-        toast.info('Wait for your turn');
+    // Attack opponent figure if adjacent
+    if (selectedFigure && figure && selectedFigure.isMyFigure !== figure.isMyFigure) {
+      if (DEMO_MODE && selectedFigure.isMyFigure !== isMyTurnLocal) {
+        // Not this side's turn in demo
         return;
       }
       const cellRow = Math.floor(cellKey / cols);
       const cellCol = cellKey % cols;
       const isAdjacent = Math.abs(selectedFigure.row - cellRow) + Math.abs(selectedFigure.col - cellCol) === 1;
-      
       if (isAdjacent) {
-        console.log('Attacking opponent figure:', figure.id);
         attackFigure(selectedFigure, figure);
         setSelectedFigure(null);
         setAvailableMoves([]);
@@ -933,39 +1032,40 @@ export default function GamePage() {
       }
     }
     
-    // If clicking on an available move cell, submit on-chain move
+    // Move to empty adjacent cell
     if (selectedFigure && !figure) {
-      if (!isMyTurn) {
-        toast.info('Wait for your turn');
-        return;
-      }
       const move = availableMoves.find(move => {
         const cellRow = Math.floor(cellKey / cols);
         const cellCol = cellKey % cols;
         return move.row === cellRow && move.col === cellCol;
       });
-      
       if (move) {
-        console.log('Submitting on-chain move to:', move);
-        const fromX = selectedFigure.col;
-        const fromY = isPlayer1 ? (rows - 1 - selectedFigure.row) : selectedFigure.row;
-        const toX = move.col;
-        const toY = isPlayer1 ? (rows - 1 - move.row) : move.row;
-        const toastId = `move-${selectedFigure.id}-${toX}-${toY}`;
-        toast.loading('Submitting move...', { id: toastId });
-        (async () => {
-          try {
-            await movePiece(fromX, fromY, toX, toY);
-            await refreshGameState();
-            toast.success('Move submitted', { id: toastId });
-          } catch (err) {
-            console.error('Failed to submit move:', err);
-            toast.error(`Failed to submit move: ${err}`, { id: toastId });
-          } finally {
-            setSelectedFigure(null);
-            setAvailableMoves([]);
-          }
-        })();
+        if (DEMO_MODE) {
+          moveFigure(selectedFigure, move.row, move.col);
+          setSelectedFigure(null);
+          setAvailableMoves([]);
+          setTimeout(() => setIsMyTurnLocal(v => !v), 400);
+        } else {
+          const fromX = selectedFigure.col;
+          const fromY = isPlayer1 ? (rows - 1 - selectedFigure.row) : selectedFigure.row;
+          const toX = move.col;
+          const toY = isPlayer1 ? (rows - 1 - move.row) : move.row;
+          const toastId = `move-${selectedFigure.id}-${toX}-${toY}`;
+          toast.loading('Submitting move...', { id: toastId });
+          (async () => {
+            try {
+              await movePiece(fromX, fromY, toX, toY);
+              await refreshGameState();
+              toast.success('Move submitted', { id: toastId });
+            } catch (err) {
+              console.error('Failed to submit move:', err);
+              toast.error(`Failed to submit move: ${err}`, { id: toastId });
+            } finally {
+              setSelectedFigure(null);
+              setAvailableMoves([]);
+            }
+          })();
+        }
         return;
       }
     }
@@ -1071,17 +1171,9 @@ export default function GamePage() {
     
     // Determine winner early (before animations)
         
-    if (!target.isMyFigure && target.weapon === Weapon.None) {
-        //TODO: remove this. we have to fetch the weapon onchain
-        const rand = Math.floor(Math.random() * 3) + 1;
-        target.weapon = rand as Weapon;
-        // setFigures(prevFigures => 
-        //     prevFigures.map(f => 
-        //     f.id === target.id 
-        //         ? { ...f, weapon: rand as Weapon }
-        //         : f
-        //     )
-        // );
+    if (target.weapon === undefined || target.weapon === Weapon.None) {
+      const rand = Math.floor(Math.random() * 3) + 1;
+      target.weapon = rand as Weapon;
     }
     
     // Check for tie - if both weapons are the same, show weapon selection popup
@@ -1176,6 +1268,9 @@ export default function GamePage() {
 
       setTimeout(() => {
         setDyingFigures([]);
+        if (DEMO_MODE) {
+          setIsMyTurnLocal(v => !v);
+        }
       }, 400);
     }, 400 + 200 + attackTimeMs + 100); // keep ~200ms window after death starts
   };
@@ -1289,7 +1384,7 @@ export default function GamePage() {
       fontFamily: 'system-ui, sans-serif'
     }}>
       <section>
-        <h2 style={{ color: '#66fcf1', marginTop: 0 }}>Game #{id}</h2>
+        <h2 style={{ color: '#66fcf1', marginTop: 0 }}>Demo Mode</h2>
         <div
           ref={setBoardRef}
           style={{
@@ -1322,9 +1417,10 @@ export default function GamePage() {
                   position: 'relative',
                   cursor: figure?.isTrap
                     ? 'not-allowed'
-                    : (!isMyTurn && figure?.isMyFigure)
-                      ? 'not-allowed'
-                      : (figure?.isMyFigure || availableMove ? 'pointer' : 'default'),
+                    : (DEMO_MODE
+                        ? ((figure && figure.isMyFigure === isMyTurnLocal) || availableMove ? 'pointer' : 'default')
+                        : ((figure?.isMyFigure || availableMove) ? 'pointer' : 'default')
+                      ),
                   borderColor: isSelected ? '#66fcf1' : '#2b3a44',
                   borderWidth: isSelected ? '2px' : '1px'
                 }}
@@ -1354,11 +1450,7 @@ export default function GamePage() {
           })}
           
           {/* All figures positioned absolutely */}
-          {riveStatus === 'success' && (isSettingLineup ? [...myLineup, ...opponentLineup] : figures.filter(f => f.isAlive)).map((figure) => {
-            // Debug logging for opponent placeholders
-            if (figure.isOpponentPlaceholder) {
-              console.log('Rendering opponent placeholder:', figure.id, 'at row', figure.row, 'col', figure.col, 'isMyFigure:', figure.isMyFigure);
-            }
+          {figures.filter(f => f.isAlive).map((figure) => {
             const isAnimating = animatingFigure === figure.id;
             
             // Use attack position if attacking, otherwise use animation position if moving, otherwise use normal position
@@ -1381,7 +1473,7 @@ export default function GamePage() {
               >
                   <RpsFigure
                     key={`${figure.id}-${figure.isTrap ? 'trap' : 'normal'}`}
-                    riveFile={riveFile as any}
+                    riveFile={riveStatus === 'success' ? (riveFile as any) : undefined}
                     weapon={figure.weapon}
                     trigger={
                       isAnimating ? jumpDirection :
@@ -1402,7 +1494,7 @@ export default function GamePage() {
                     style={{ 
                       width: `${figureSize}px`, 
                       height: `${figureSize}px`, 
-                      transform: `${(isPlayer1 && !figure.isMyFigure) ? 'scaleX(-1) ' : ''}scale(${scaledFigures.includes(figure.id) ? figureScale * 2 : figureScale})`, 
+                      transform: `${(!figure.isMyFigure && attackingFigures.includes(figure.id)) ? 'scaleX(-1) ' : ''}scale(${scaledFigures.includes(figure.id) ? figureScale * 2 : figureScale})`, 
                       transformOrigin: 'center center',
                       transition: scaledFigures.includes(figure.id) ? 'transform 0.3s ease-in-out' : 'none'
                     }}
@@ -1416,126 +1508,32 @@ export default function GamePage() {
       <aside style={{ display: 'grid', gap: 24 }}>
         <div style={{ minHeight: 160, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <strong style={{ color: '#c5c6c7' }}>Game Info</strong>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button 
-                onClick={refreshGameState}
-                style={{
-                  background: '#66fcf1',
-                  color: '#0e1419',
-                  border: 'none',
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: 12
-                }}
-              >
-                Refresh
-              </button>
-              <WalletMultiButton 
-                style={{
-                  background: '#2b3a44',
-                  color: '#c5c6c7',
-                  border: '1px solid #2b3a44',
-                  borderRadius: '4px',
-                  padding: '6px 12px',
-                  fontSize: 12,
-                  cursor: 'pointer'
-                }}
-              />
-            </div>
+            <strong style={{ color: '#c5c6c7' }}>Demo Controls</strong>
           </div>
-          <div style={{ fontSize: 14, color: '#c5c6c7' }}>
-            <div>Phase: {gameState?.phase || 'Unknown'} {
-              gameState?.phase === 0 ? '(Created)' :
-              gameState?.phase === 1 ? '(Joined)' :
-              gameState?.phase === 2 ? '(FlagP0Placed)' :
-              gameState?.phase === 3 ? '(FlagP1Placed)' :
-              gameState?.phase === 4 ? '(FlagsPlaced)' :
-              gameState?.phase === 5 ? '(LineupP0Set)' :
-              gameState?.phase === 6 ? '(LineupP1Set)' :
-              gameState?.phase === 7 ? '(Active)' :
-              gameState?.phase === 8 ? '(Finished)' : ''
-            }</div>
-            <div>Game PDA: {gamePda.slice(0, 8)}...</div>
-            <div>Live Pieces: {gameState?.live0 || 0} vs {gameState?.live1 || 0}</div>
-            <div>Setting Lineup: {isSettingLineup ? 'Yes' : 'No'}</div>
-            <div>My Lineup: {myLineup.length} pieces</div>
-            <div style={{ marginTop: 8, color: '#66fcf1', fontWeight: 'bold' }}>Lineup Status</div>
-            <div>My lineup submitted: {gameState?.phase && gameState.phase >= (isPlayer0 ? 5 : 6) ? 'Yes' : 'No'}</div>
-            <div>Opponent&apos;s lineup submitted: {gameState?.phase && gameState.phase >= (isPlayer0 ? 6 : 5) ? 'Yes' : 'No'}</div>
-            <div style={{ marginTop: 8, fontSize: 12, color: '#8a9ba8' }}>
-              <div>Debug: Phase {gameState?.phase}, P0: {isPlayer0 ? 'Yes' : 'No'}, P1: {isPlayer1 ? 'Yes' : 'No'}</div>
-              <div>Should show lineup: {
-                (gameState?.phase === 1 && isPlayer0) ||
-                (gameState?.phase === 1 && isPlayer1 && !isEmptyAddress(gameState?.p0)) ||
-                (gameState?.phase === 2 && isPlayer1) ||
-                (gameState?.phase === 3 && isPlayer0) ||
-                (gameState?.phase === 4 && isPlayer0) ||
-                (gameState?.phase === 5 && isPlayer1) ? 'Yes' : 'No'
-              }</div>
+          <div style={{ fontSize: 14, color: '#c5c6c7', display: 'grid', gap: 8 }}>
+            <div>Current turn: <span style={{ color: '#66fcf1', fontWeight: 'bold' }}>{isMyTurnLocal ? 'My' : 'Opponent'}</span></div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setIsMyTurnLocal(v => !v)}
+                style={{ background: '#2b3a44', color: '#c5c6c7', border: '1px solid #2b3a44', padding: '6px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+              >
+                Toggle Turn
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedFigure(null);
+                  setAvailableMoves([]);
+                  randomizeDemoLineup();
+                }}
+                style={{ background: '#66fcf1', color: '#0e1419', border: 'none', padding: '6px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+              >
+                Randomize Lineup
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Lineup Controls */}
-        {isSettingLineup && (
-          <div style={{ background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
-            <div style={{ color: '#66fcf1', fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>
-              Set Your Lineup
-            </div>
-            <div style={{ fontSize: 14, color: '#c5c6c7', marginBottom: 16, textAlign: 'center' }}>
-              Arrange your pieces: 4 Stones, 4 Paper, 4 Scissors, 1 Flag, 1 Trap
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
-              <button
-                onClick={handleShuffleLineup}
-                style={{
-                  background: '#2b3a44',
-                  color: '#c5c6c7',
-                  border: '1px solid #2b3a44',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = '#3a4a54';
-                  e.currentTarget.style.borderColor = '#66fcf1';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = '#2b3a44';
-                  e.currentTarget.style.borderColor = '#2b3a44';
-                }}
-              >
-                🔀 Shuffle
-              </button>
-              <button
-                onClick={handleSubmitLineup}
-                style={{
-                  background: '#66fcf1',
-                  color: '#0e1419',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  fontWeight: 'bold',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = '#5ae5d8';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = '#66fcf1';
-                }}
-              >
-                ✅ Submit Lineup
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Lineup Controls hidden in demo */}
 
         <div style={{ height: 260, background: '#0e1419', border: '1px solid #2b3a44', borderRadius: 8, padding: 12 }}>
           <strong style={{ color: '#c5c6c7' }}>Player Info</strong>

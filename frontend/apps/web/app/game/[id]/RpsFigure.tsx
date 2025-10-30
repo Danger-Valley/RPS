@@ -83,17 +83,6 @@ export default function RpsFigure({
   // Set weapon number input if present
   useEffect(() => {
     if (!rive) return;
-
-    const c = rive?.contents;
-    c?.artboards?.forEach((ab) => {
-        console.log('Artboard:', ab.name);
-        console.log('Animations:', ab.animations);
-        console.log('State machines:', ab.stateMachines.map((sm) => sm.name));
-        ab.stateMachines.forEach((sm) => {
-            console.log(`Inputs for ${sm.name}:`, (rive?.stateMachineInputs?.(sm.name) ?? []).map((i) => i.name));
-        });
-    });
-
     try {
       setWeapon(rive, weapon);
     } catch {}
@@ -136,12 +125,15 @@ export default function RpsFigure({
   // Auto-trigger "Trap Idle" for trap pieces (only for my figures)
   useEffect(() => {
     if (!rive || !isMyFigure) return;
+    if (typeof (rive as any)?.stateMachineInputs !== 'function') return;
     
     if (isTrap) {
       // Trigger Trap Idle animation
       console.log('[Rive] Auto-triggering Trap Idle for trap piece');
       try {
-        const inputs = (rive.stateMachineInputs?.(stateMachine) ?? []) as any[];
+        const inputs = (Array.isArray((rive as any)?.stateMachineInputs?.(stateMachine))
+          ? (rive as any).stateMachineInputs(stateMachine)
+          : []) as any[];
         const trapIdleTrigger = inputs.find((i: any) => i?.name === 'Trap Idle' && typeof i?.fire === 'function');
         if (trapIdleTrigger) {
           trapIdleTrigger.fire();
@@ -155,7 +147,9 @@ export default function RpsFigure({
       console.log('[Rive] Resetting from Trap Idle to normal idle');
       try {
         // Reset the state machine to go back to normal idle
-        const inputs = (rive.stateMachineInputs?.(stateMachine) ?? []) as any[];
+        const inputs = (Array.isArray((rive as any)?.stateMachineInputs?.(stateMachine))
+          ? (rive as any).stateMachineInputs(stateMachine)
+          : []) as any[];
         // Find and fire the WeaponVisible input to reset
         const weaponVisibleInput = inputs.find((i: any) => i?.name === 'WeaponVisible');
         if (weaponVisibleInput && 'value' in weaponVisibleInput) {
