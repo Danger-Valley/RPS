@@ -160,6 +160,7 @@ export default function HomePage() {
       }}>
         <h3 style={{ color: '#66fcf1', marginTop: 0 }}>How to Play</h3>
         <div style={{ color: '#c5c6c7', lineHeight: '1.6' }}>
+          <p>0. Switch your Solana wallet to Devnet</p>
           <p>1. Connect your Solana wallet</p>
           <p>2. Click &quot;Start Game&quot; to create a new game</p>
           <p>3. Share the game ID with friends to invite them</p>
