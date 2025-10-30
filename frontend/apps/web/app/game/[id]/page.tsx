@@ -84,6 +84,7 @@ export default function GamePage() {
   const [attackPhase, setAttackPhase] = useState<'prepare' | 'attack' | null>(null);
   const [dyingFigures, setDyingFigures] = useState<string[]>([]);
   const [winningFigure, setWinningFigure] = useState<string | null>(null);
+  const [revealedOpponents, setRevealedOpponents] = useState<{[id: string]: boolean}>({});
   
   // Movement system
   const [selectedFigure, setSelectedFigure] = useState<Figure | null>(null);
@@ -1232,6 +1233,12 @@ export default function GamePage() {
     
     // Start with "Attack Prepare" phase
     setAttackPhase('prepare');
+    // Reveal opponent weapon(s) and keep them revealed thereafter
+    setRevealedOpponents(prev => ({
+      ...prev,
+      ...(attacker.isMyFigure ? {} : { [attacker.id]: true }),
+      ...(target.isMyFigure ? {} : { [target.id]: true })
+    }));
     // Move to attack positions 100ms after prepare
     setTimeout(() => {
       setAttackPositions({
@@ -1474,7 +1481,7 @@ export default function GamePage() {
                   <RpsFigure
                     key={`${figure.id}-${figure.isTrap ? 'trap' : 'normal'}`}
                     riveFile={riveStatus === 'success' ? (riveFile as any) : undefined}
-                    weapon={figure.weapon}
+                    weapon={figure.isMyFigure ? figure.weapon : ((revealedOpponents[figure.id] || attackingFigures.includes(figure.id)) ? figure.weapon : undefined)}
                     trigger={
                       isAnimating ? jumpDirection :
                       attackingFigures.includes(figure.id)
