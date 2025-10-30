@@ -43,6 +43,7 @@ export default function GamePage() {
     refreshGameState,
     joinGame,
     submitCustomLineup,
+    movePiece,
     isPlayer0,
     isPlayer1,
     isMyTurn 
@@ -400,8 +401,8 @@ export default function GamePage() {
         const owner = gameState.owners[i];
         const piece = gameState.pieces[i];
         
-        // Determine if this is the user's figure
-        const isMyFigure = (isPlayer0 && owner === 0) || (isPlayer1 && owner === 1);
+        // Determine if this is the user's figure (Owner.None=0, P0=1, P1=2)
+        const isMyFigure = (isPlayer0 && owner === Owner.P0) || (isPlayer1 && owner === Owner.P1);
         
         // Only create figure if it's owned by someone
         if (owner !== 0) { // 0 = None in Owner enum
@@ -893,8 +894,12 @@ export default function GamePage() {
     }
     
     // If clicking on one of my figures, select it and show available moves
-    // BUT: Don't allow selecting trap pieces
+    // BUT: Don't allow selecting trap pieces or when it's not my turn
     if (figure && figure.isMyFigure) {
+      if (!isMyTurn) {
+        toast.info('Wait for your turn');
+        return;
+      }
       // Prevent selecting trap pieces
       if (figure.isTrap) {
         console.log('Cannot select trap piece - traps are not movable');
@@ -911,6 +916,10 @@ export default function GamePage() {
     
     // If clicking on an opponent figure and I have a selected figure, check if it's adjacent
     if (selectedFigure && figure && !figure.isMyFigure) {
+      if (!isMyTurn) {
+        toast.info('Wait for your turn');
+        return;
+      }
       const cellRow = Math.floor(cellKey / cols);
       const cellCol = cellKey % cols;
       const isAdjacent = Math.abs(selectedFigure.row - cellRow) + Math.abs(selectedFigure.col - cellCol) === 1;
@@ -924,8 +933,12 @@ export default function GamePage() {
       }
     }
     
-    // If clicking on an available move cell, move the figure
+    // If clicking on an available move cell, submit on-chain move
     if (selectedFigure && !figure) {
+      if (!isMyTurn) {
+        toast.info('Wait for your turn');
+        return;
+      }
       const move = availableMoves.find(move => {
         const cellRow = Math.floor(cellKey / cols);
         const cellCol = cellKey % cols;
@@ -933,10 +946,26 @@ export default function GamePage() {
       });
       
       if (move) {
-        console.log('Moving figure to:', move);
-        moveFigure(selectedFigure, move.row, move.col);
-        setSelectedFigure(null);
-        setAvailableMoves([]);
+        console.log('Submitting on-chain move to:', move);
+        const fromX = selectedFigure.col;
+        const fromY = isPlayer1 ? (rows - 1 - selectedFigure.row) : selectedFigure.row;
+        const toX = move.col;
+        const toY = isPlayer1 ? (rows - 1 - move.row) : move.row;
+        const toastId = `move-${selectedFigure.id}-${toX}-${toY}`;
+        toast.loading('Submitting move...', { id: toastId });
+        (async () => {
+          try {
+            await movePiece(fromX, fromY, toX, toY);
+            await refreshGameState();
+            toast.success('Move submitted', { id: toastId });
+          } catch (err) {
+            console.error('Failed to submit move:', err);
+            toast.error(`Failed to submit move: ${err}`, { id: toastId });
+          } finally {
+            setSelectedFigure(null);
+            setAvailableMoves([]);
+          }
+        })();
         return;
       }
     }
@@ -1291,7 +1320,11 @@ export default function GamePage() {
                   border: '1px solid #2b3a44',
                   background: i % 2 === 0 ? '#11171c' : '#0e1419',
                   position: 'relative',
-                  cursor: figure?.isTrap ? 'not-allowed' : (figure?.isMyFigure || availableMove ? 'pointer' : 'default'),
+                  cursor: figure?.isTrap
+                    ? 'not-allowed'
+                    : (!isMyTurn && figure?.isMyFigure)
+                      ? 'not-allowed'
+                      : (figure?.isMyFigure || availableMove ? 'pointer' : 'default'),
                   borderColor: isSelected ? '#66fcf1' : '#2b3a44',
                   borderWidth: isSelected ? '2px' : '1px'
                 }}
